@@ -460,23 +460,23 @@
         };
         let currentViewId = 'login';
 
-        // --- SISTEMA DE AUTENTICAÇÃO OBRIGATÓRIA PARA EVITAR "PERMISSION DENIED" ---
+        // --- INICIALIZAÇÃO DE DADOS E AUTENTICAÇÃO ---
         const initAuthAndData = async () => {
             try {
-                // Tenta autenticar via Token do sistema atual ou cria um usuário anônimo
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    await signInAnonymously(auth);
+                    try {
+                        await signInAnonymously(auth);
+                    } catch(authErr) {
+                        console.warn("Aviso: Falha na autenticação anônima. O banco de dados precisará ter regras públicas.", authErr);
+                    }
                 }
-
-                // Assim que estiver autenticado (seguro), chamamos os dados do banco
-                setupDatabaseListeners();
-
             } catch (err) {
-                console.error("Erro de Autenticação Firebase:", err);
-                showToast("Falha ao se conectar com o banco de dados.");
-                if(currentViewId === 'home') renderHome();
+                console.error("Erro na autenticação:", err);
+            } finally {
+                // Tenta escutar o banco de dados independentemente do sucesso da autenticação
+                setupDatabaseListeners();
             }
         };
 
