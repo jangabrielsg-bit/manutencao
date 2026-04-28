@@ -482,21 +482,15 @@
 
         // Helpers de rotas seguras para o banco
         const getSettingsDoc = () => {
-            return typeof __app_id !== 'undefined' 
-                ? doc(db, 'artifacts', __app_id, 'public', 'data', 'settings', 'general') 
-                : doc(db, "settings", "general");
+            return doc(db, "settings", "general");
         };
 
         const getOrdersCol = () => {
-            return typeof __app_id !== 'undefined' 
-                ? collection(db, 'artifacts', __app_id, 'public', 'data', 'orders') 
-                : collection(db, "orders");
+            return collection(db, "orders");
         };
 
         const getOrderDoc = (id) => {
-            return typeof __app_id !== 'undefined' 
-                ? doc(db, 'artifacts', __app_id, 'public', 'data', 'orders', id) 
-                : doc(db, "orders", id);
+            return doc(db, "orders", id);
         };
 
         function setupDatabaseListeners() {
@@ -600,8 +594,10 @@
                     deferredPrompt = null;
                 }
             } else {
-                showToast("Abra no Chrome (Android) ou Safari (iOS) para instalar.");
-                document.getElementById('install-app-hint').classList.remove('hidden');
+                const hint = document.getElementById('install-app-hint');
+                hint.innerHTML = `<strong>Instalação Manual:</strong><br>• <strong>Android:</strong> Toque nos 3 pontinhos (⋮) do navegador > "Adicionar à tela inicial".<br>• <strong>iPhone:</strong> Toque em Compartilhar (setinha) > "Adicionar à Tela de Início".`;
+                hint.className = "text-xs text-left text-dark mt-3 bg-yellow-100 p-3 rounded-lg border border-yellow-300 block shadow-sm";
+                showToast("Siga as instruções de instalação abaixo.");
             }
         }
 
