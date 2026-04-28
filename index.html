@@ -120,6 +120,13 @@
             </div>
 
             <div class="px-6 max-w-5xl mx-auto">
+                <!-- Busca Global -->
+                <div class="relative w-full mb-6">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                    <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar nº da OS (Ex: OS-2026...)" class="w-full pl-10 pr-12 py-3 bg-white rounded-xl shadow-sm border border-gray-200 focus:border-brand focus:ring-1 focus:ring-brand text-sm outline-none uppercase font-medium">
+                    <button onclick="globalSearchOS()" class="absolute right-1.5 top-1.5 bottom-1.5 bg-brand text-dark px-3.5 rounded-lg font-bold text-xs shadow-sm hover:bg-yellow-500 transition active:scale-95"><i class="fas fa-arrow-right"></i></button>
+                </div>
+
                 <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Selecione o Setor</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="sector-grid">
                     <!-- Gerado via JS -->
@@ -221,6 +228,9 @@
             <div class="flex justify-between items-center mb-4 no-print">
                 <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
                 <div class="flex gap-2">
+                    <button id="btn-delete-os" onclick="deleteOS()" class="px-3 py-1.5 bg-red-50 text-danger border border-red-200 text-xs font-bold rounded shadow-sm hover:bg-red-100 transition flex items-center gap-1 hidden">
+                        <i class="fas fa-trash-alt"></i> <span class="hidden sm:inline">Excluir</span>
+                    </button>
                     <button id="btn-share-whatsapp" onclick="shareWhatsApp()" class="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded shadow-sm hover:bg-green-600 transition flex items-center gap-1 hidden">
                         <i class="fab fa-whatsapp"></i> <span class="hidden sm:inline">Avisar Solicitante</span>
                     </button>
@@ -933,7 +943,19 @@
                 await addDoc(getOrdersCol(), newOS);
 
                 e.target.reset();
-                showToast("Ocorrência registrada! A manutenção foi notificada.");
+                showToast("Ocorrência registrada! Redirecionando para o WhatsApp...");
+                
+                let mensagem = `*Nova Ocorrência Solicitada (Manutenção)*\n\n`;
+                mensagem += `*OS:* ${newOS.id}\n`;
+                mensagem += `*Setor:* ${newOS.sector}\n`;
+                mensagem += `*Solicitante:* ${newOS.requester}\n\n`;
+                mensagem += `*Descrição do Problema:*\n${newOS.description}\n`;
+                const appUrl = window.location.href.split('#')[0];
+                mensagem += `\n_Para atender ou ver detalhes, acesse o sistema:_\n👉 ${appUrl}`;
+
+                const textoCodificado = encodeURIComponent(mensagem);
+                window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
+
                 setTimeout(() => navigate('home'), 1000);
 
             } catch (err) {
@@ -943,6 +965,19 @@
         }
 
         // --- GESTÃO DE OS ---
+        function globalSearchOS() {
+            const query = document.getElementById('global-search-os').value.trim().toUpperCase();
+            if(!query) return;
+
+            const os = appState.orders.find(o => o.id.toUpperCase().includes(query));
+            if(os) {
+                openOSDetails(os.id);
+                document.getElementById('global-search-os').value = '';
+            } else {
+                showToast(`Nenhuma OS encontrada para '${query}'.`);
+            }
+        }
+
         function openOSDetails(id) {
             const os = appState.orders.find(o => o.id === id);
             if(!os) return;
@@ -970,6 +1005,7 @@
             
             document.getElementById('btn-print-os').classList.toggle('hidden', !isMaint);
             document.getElementById('btn-share-whatsapp').classList.toggle('hidden', !isMaint); 
+            document.getElementById('btn-delete-os').classList.toggle('hidden', !isMaint); 
             
             const showAlmo = isMaint && os.status === 'Concluída' && os.itemsUsed && os.itemsUsed.length > 0;
             document.getElementById('btn-print-almo').classList.toggle('hidden', !showAlmo);
@@ -1068,6 +1104,22 @@
             }
         }
 
+        async function deleteOS() {
+            const id = document.getElementById('manage-os-id').value;
+            const dbId = document.getElementById('manage-os-dbid').value;
+            
+            if(confirm(`ATENÇÃO: Deseja realmente EXCLUIR a ${id}?\nEsta ação apagará permanentemente a ocorrência.`)) {
+                try {
+                    await deleteDoc(getOrderDoc(dbId));
+                    showToast(`${id} foi excluída com sucesso.`);
+                    navigate('home');
+                } catch(e) {
+                    console.error("Erro ao excluir OS:", e);
+                    showToast("Erro ao excluir. Verifique sua conexão e permissões.");
+                }
+            }
+        }
+
         function shareWhatsApp() {
             const id = document.getElementById('manage-os-id').value;
             const os = appState.orders.find(o => o.id === id);
@@ -1080,7 +1132,8 @@
             if(os.assignedTo) mensagem += `*Responsável:* ${os.assignedTo}\n`;
             if(os.diagnostic) mensagem += `*Diagnóstico:* ${os.diagnostic}\n`;
             if(os.deadline) mensagem += `*Prazo Estimado:* ${new Date(os.deadline).toLocaleDateString('pt-BR')}\n`;
-            mensagem += `\n_Para mais detalhes, acesse o sistema de manutenção._`;
+            const appUrl = window.location.href.split('#')[0];
+            mensagem += `\n_Para mais detalhes, acesse o sistema:_\n👉 ${appUrl}`;
 
             const textoCodificado = encodeURIComponent(mensagem);
             window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
@@ -1272,6 +1325,7 @@
         window.calculateGUT = calculateGUT;
         window.previewPhoto = previewPhoto;
         window.handleNewOS = handleNewOS;
+        window.globalSearchOS = globalSearchOS;
         window.openOSDetails = openOSDetails;
         window.addItemToOS = addItemToOS;
         window.removeItem = removeItem;
@@ -1288,6 +1342,7 @@
         window.saveEditCollaborator = saveEditCollaborator;
         window.deleteCollaborator = deleteCollaborator;
         window.installApp = installApp;
+        window.deleteOS = deleteOS;
 
     </script>
 </body>
