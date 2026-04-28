@@ -231,8 +231,8 @@
                     <button id="btn-delete-os" onclick="deleteOS()" class="px-3 py-1.5 bg-red-50 text-danger border border-red-200 text-xs font-bold rounded shadow-sm hover:bg-red-100 transition flex items-center gap-1 hidden">
                         <i class="fas fa-trash-alt"></i> <span class="hidden sm:inline">Excluir</span>
                     </button>
-                    <button id="btn-share-whatsapp" onclick="shareWhatsApp()" class="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded shadow-sm hover:bg-green-600 transition flex items-center gap-1 hidden">
-                        <i class="fab fa-whatsapp"></i> <span class="hidden sm:inline">Avisar Solicitante</span>
+                    <button id="btn-share-whatsapp" onclick="shareWhatsApp()" class="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded shadow-sm hover:bg-green-600 transition flex items-center gap-1">
+                        <i class="fab fa-whatsapp"></i> <span class="hidden sm:inline">Encaminhar</span>
                     </button>
                     <button id="btn-print-os" onclick="printDocument('os')" class="px-3 py-1.5 bg-gray-200 text-dark text-xs font-bold rounded shadow-sm hover:bg-gray-300 hidden"><i class="fas fa-print mr-1"></i> Ficha OS</button>
                     <button id="btn-print-almo" onclick="printDocument('almo')" class="px-3 py-1.5 bg-brand text-dark text-xs font-bold rounded shadow-sm hover:bg-yellow-500 hidden"><i class="fas fa-boxes mr-1"></i> Vale Almoxarifado</button>
@@ -1004,7 +1004,6 @@
             document.getElementById('readonly-management').classList.toggle('hidden', isMaint);
             
             document.getElementById('btn-print-os').classList.toggle('hidden', !isMaint);
-            document.getElementById('btn-share-whatsapp').classList.toggle('hidden', !isMaint); 
             document.getElementById('btn-delete-os').classList.toggle('hidden', !isMaint); 
             
             const showAlmo = isMaint && os.status === 'Concluída' && os.itemsUsed && os.itemsUsed.length > 0;
@@ -1121,7 +1120,7 @@
         }
 
         function shareWhatsApp() {
-            const id = document.getElementById('manage-os-id').value;
+            const id = document.getElementById('detail-id').innerText;
             const os = appState.orders.find(o => o.id === id);
             if(!os) return;
 
