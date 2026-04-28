@@ -945,10 +945,11 @@
                 e.target.reset();
                 showToast("Ocorrência registrada! Redirecionando para o WhatsApp...");
                 
-                let mensagem = `*Nova Ocorrência Solicitada (Manutenção)*\n\n`;
-                mensagem += `*OS:* ${newOS.id}\n`;
-                mensagem += `*Setor:* ${newOS.sector}\n`;
-                mensagem += `*Solicitante:* ${newOS.requester}\n\n`;
+                const dataFormatada = new Date().toLocaleDateString('pt-BR');
+                let mensagem = `🚨 *Nova OS Solicitada*\n\n`;
+                mensagem += `Foi aberta uma nova ordem de serviço no setor *${newOS.sector}*, por *${newOS.requester}*, na data *${dataFormatada}*.\n\n`;
+                mensagem += `*Número da OS:* ${newOS.id}\n`;
+                mensagem += `*Pontuação GUT:* ${newOS.gut.score} (G:${newOS.gut.g} U:${newOS.gut.u} T:${newOS.gut.t})\n\n`;
                 mensagem += `*Descrição do Problema:*\n${newOS.description}\n`;
                 const appUrl = window.location.href.split('#')[0];
                 mensagem += `\n_Para atender ou ver detalhes, acesse o sistema:_\n👉 ${appUrl}`;
