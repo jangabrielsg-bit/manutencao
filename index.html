@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestão de Manutenção - OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#DDA800', 
+                        brandLight: '#FEF8E7',
+                        dark: '#1e293b',
+                        grayBg: '#f4f5f7',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                        warning: '#f59e0b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body { -webkit-tap-highlight-color: transparent; background-color: #f4f5f7; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @media print {
+            body * { visibility: hidden; }
+            .no-print { display: none !important; }
+            body.print-os #print-area-os, body.print-os #print-area-os * { visibility: visible; }
+            body.print-os #print-area-os { position: absolute; left: 0; top: 0; width: 100%; padding: 0; background: white;}
+            body.print-almo #print-area-almo, body.print-almo #print-area-almo * { visibility: visible; }
+            body.print-almo #print-area-almo { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; background: white;}
+        }
+    </style>
+</head>
+<body class="text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- View: Login -->
+    <div id="view-login" class="view-section h-full flex flex-col items-center justify-center bg-grayBg px-6 z-50 fade-in relative">
+        <div class="w-full max-w-sm flex flex-col items-center">
+            <div class="w-24 h-24 bg-brand rounded-full flex items-center justify-center mb-6 shadow-lg">
+                <i class="fas fa-tools text-4xl text-white"></i>
+            </div>
+            
+            <h1 class="text-2xl font-bold mb-2 text-dark">Gestão de Manutenção</h1>
+            <p class="text-gray-500 text-sm mb-10 text-center">Selecione seu perfil de acesso</p>
+
+            <div class="w-full space-y-4">
+                <button onclick="login('requester')" class="w-full bg-white border border-gray-200 hover:border-brand p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
+                    <div class="w-10 h-10 rounded bg-gray-100 text-brand flex items-center justify-center text-xl"><i class="fas fa-user"></i></div>
+                    <div class="text-left">
+                        <h3 class="font-bold text-dark text-sm">Sou Solicitante</h3>
+                        <p class="text-xs text-gray-500">Registrar e acompanhar OS</p>
+                    </div>
+                </button>
+
+                <button onclick="login('maintenance')" class="w-full bg-dark border border-gray-800 p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
+                    <div class="w-10 h-10 rounded bg-gray-700 text-brand flex items-center justify-center text-xl"><i class="fas fa-wrench"></i></div>
+                    <div class="text-left">
+                        <h3 class="font-bold text-white text-sm">Manutenção</h3>
+                        <p class="text-xs text-gray-400">Diagnósticos e gestão</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Yellow -->
+    <header id="main-header" class="hidden bg-brand text-dark pt-safe no-print z-40 shrink-0">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
+                <img id="header-logo" src="https://via.placeholder.com/150x50?text=LOGO" class="h-8 object-contain">
+                <span class="font-bold text-sm hidden sm:inline" id="header-title-text">Controle de Manutenção</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="navigate('my-os')" class="req-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
+                    <i class="fas fa-clock"></i>
+                    <span id="badge-my-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
+                </button>
+                <button onclick="navigate('settings')" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-cog"></i></button>
+                <button onclick="logout()" class="w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 overflow-y-auto hidden relative bg-grayBg">
+        
+        <!-- View: Home -->
+        <div id="view-home" class="view-section hidden pb-32">
+            <div class="bg-brand px-6 pb-6 pt-4 rounded-b-3xl mb-6">
+                <div class="flex justify-end mb-2">
+                    <button onclick="openSector('CONCLUIDAS')" class="bg-white text-success font-bold px-3 py-2 rounded-md shadow-md flex items-center gap-2 border border-gray-100 text-sm hover:bg-gray-50 transition active:scale-95">
+                        <div class="bg-success text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        Ver Concluídas
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-6 max-w-5xl mx-auto">
+                <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Selecione o Setor</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="sector-grid">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Lista de OS do Setor -->
+        <div id="view-sector-os" class="view-section hidden p-6 pb-32 max-w-4xl mx-auto slide-up">
+            <div class="flex items-center gap-3 mb-6">
+                <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
+                <h2 class="text-xl font-bold text-dark uppercase" id="list-sector-title">SETOR</h2>
+            </div>
+
+            <div class="relative w-full mb-4">
+                <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                <input type="text" id="search-os" oninput="renderSectorList()" placeholder="Buscar por descrição ou número..." class="w-full pl-10 pr-4 py-3 bg-white rounded-xl shadow-sm border-none focus:ring-2 focus:ring-brand text-sm outline-none">
+            </div>
+
+            <div id="concluidas-filters" class="hidden mb-6 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                <h3 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Filtros e Organização</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="filter-c-sector" onchange="renderSectorList()" class="p-2 text-xs font-medium text-dark bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <option value="">Todos os Setores</option>
+                    </select>
+                    <div class="flex gap-1">
+                        <input type="date" id="filter-c-date" onchange="renderSectorList()" class="w-full p-2 text-xs font-medium text-dark bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <button onclick="document.getElementById('filter-c-date').value=''; renderSectorList()" class="bg-gray-100 border border-gray-200 rounded px-2 text-gray-500 hover:bg-gray-200 transition" title="Limpar Data"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="os-list-container" class="space-y-3">
+                <!-- Gerado via JS -->
+            </div>
+        </div>
+
+        <!-- View: Nova OS -->
+        <div id="view-new-os" class="view-section hidden p-6 slide-up max-w-2xl mx-auto w-full pb-32">
+            <div class="flex items-center gap-3 mb-6">
+                <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
+                <h2 class="text-xl font-bold text-dark">Registrar Ocorrência</h2>
+            </div>
+
+            <form id="form-new-os" onsubmit="handleNewOS(event)" class="space-y-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Seu Nome / Solicitante *</label>
+                        <input type="text" id="os-requester" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor do Problema *</label>
+                        <select id="os-sector" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm font-medium">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição Detalhada *</label>
+                        <textarea id="os-description" required rows="3" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm" placeholder="O que está acontecendo?"></textarea>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Evidência Fotográfica</label>
+                    <div class="grid grid-cols-2 gap-3 mb-2">
+                        <label class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-white shadow-sm">
+                            <i class="fas fa-camera text-2xl text-dark mb-1"></i>
+                            <span class="text-xs font-bold text-gray-600 mt-1">Tirar Foto</span>
+                            <input id="os-photo-cam" type="file" accept="image/*" capture="environment" class="sr-only" onchange="previewPhoto(event, 'preview-new-photo', 'cam')">
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-white shadow-sm">
+                            <i class="fas fa-images text-2xl text-dark mb-1"></i>
+                            <span class="text-xs font-bold text-gray-600 mt-1">Galeria</span>
+                            <input id="os-photo-gal" type="file" accept="image/*" class="sr-only" onchange="previewPhoto(event, 'preview-new-photo', 'gal')">
+                        </label>
+                    </div>
+                    <img id="preview-new-photo" class="hidden mt-4 max-h-48 rounded shadow-md object-cover w-full border border-gray-200">
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-xs font-bold text-gray-500 uppercase">Prioridade Percebida (GUT)</label>
+                        <span id="gut-score-display" class="text-xs font-bold px-2 py-1 rounded bg-gray-100 border">0</span>
+                    </div>
+                    <div class="space-y-3">
+                        <select id="gut-g" onchange="calculateGUT('new')" class="w-full p-2 bg-gray-50 rounded border border-gray-200 outline-none text-xs font-medium"><option value="1">Gravidade: 1 - Sem gravidade</option><option value="2">Gravidade: 2 - Pouco grave</option><option value="3" selected>Gravidade: 3 - Grave</option><option value="4">Gravidade: 4 - Muito grave</option><option value="5">Gravidade: 5 - Extremamente grave</option></select>
+                        <select id="gut-u" onchange="calculateGUT('new')" class="w-full p-2 bg-gray-50 rounded border border-gray-200 outline-none text-xs font-medium"><option value="1">Urgência: 1 - Pode esperar</option><option value="2">Urgência: 2 - Pouco urgente</option><option value="3" selected>Urgência: 3 - Urgente</option><option value="4">Urgência: 4 - Muito urgente</option><option value="5">Urgência: 5 - Imediatamente</option></select>
+                        <select id="gut-t" onchange="calculateGUT('new')" class="w-full p-2 bg-gray-50 rounded border border-gray-200 outline-none text-xs font-medium"><option value="1">Tendência: 1 - Não muda</option><option value="2">Tendência: 2 - Piora a longo prazo</option><option value="3" selected>Tendência: 3 - Piora a médio prazo</option><option value="4">Tendência: 4 - Piora a curto prazo</option><option value="5">Tendência: 5 - Piora rapidamente</option></select>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-4 font-bold text-brand bg-dark rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.15)] active:scale-95 transition mt-4 text-lg border border-gray-800">
+                    Salvar Ocorrência
+                </button>
+            </form>
+        </div>
+
+        <!-- View: Detalhes da OS -->
+        <div id="view-os-details" class="view-section hidden p-4 slide-up max-w-3xl mx-auto pb-32">
+            <div class="flex justify-between items-center mb-4 no-print">
+                <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
+                <div class="flex gap-2">
+                    <button id="btn-share-whatsapp" onclick="shareWhatsApp()" class="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded shadow-sm hover:bg-green-600 transition flex items-center gap-1 hidden">
+                        <i class="fab fa-whatsapp"></i> <span class="hidden sm:inline">Avisar Solicitante</span>
+                    </button>
+                    <button id="btn-print-os" onclick="printDocument('os')" class="px-3 py-1.5 bg-gray-200 text-dark text-xs font-bold rounded shadow-sm hover:bg-gray-300 hidden"><i class="fas fa-print mr-1"></i> Ficha OS</button>
+                    <button id="btn-print-almo" onclick="printDocument('almo')" class="px-3 py-1.5 bg-brand text-dark text-xs font-bold rounded shadow-sm hover:bg-yellow-500 hidden"><i class="fas fa-boxes mr-1"></i> Vale Almoxarifado</button>
+                </div>
+            </div>
+
+            <!-- Ficha Normal OS -->
+            <div id="print-area-os" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-5 border-b border-gray-100 flex justify-between items-start">
+                    <div>
+                        <h1 class="text-xl font-black text-dark" id="detail-id">OS-XXX</h1>
+                        <p class="text-[10px] text-gray-500 font-medium mt-1" id="detail-date"></p>
+                    </div>
+                    <div class="text-right">
+                        <span id="detail-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border block mb-1"></span>
+                        <span id="detail-gut-badge" class="px-2 py-0.5 rounded text-[10px] font-bold border"></span>
+                    </div>
+                </div>
+
+                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase border-b pb-1">Dados Iniciais</h3>
+                        <div class="text-sm space-y-2">
+                            <p><span class="text-gray-500">Setor:</span> <span class="font-bold text-dark" id="detail-sector"></span></p>
+                            <p><span class="text-gray-500">Solicitante:</span> <span class="font-bold text-dark" id="detail-requester"></span></p>
+                            <div class="pt-2">
+                                <span class="text-gray-500 block text-xs mb-1">Descrição:</span>
+                                <p id="detail-description" class="bg-gray-50 p-3 rounded border border-gray-100 text-dark text-sm whitespace-pre-wrap"></p>
+                            </div>
+                            <div id="detail-photo-container" class="hidden pt-2">
+                                <span class="text-gray-500 block text-xs mb-1">Evidência:</span>
+                                <img id="detail-photo" class="w-full rounded border">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold text-brand uppercase border-b pb-1">Intervenção</h3>
+                        
+                        <form id="form-manage-os" class="space-y-4 no-print hidden">
+                            <input type="hidden" id="manage-os-id">
+                            <input type="hidden" id="manage-os-dbid">
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Status</label>
+                                <select id="manage-status" class="w-full p-2.5 text-sm bg-white rounded border border-gray-300 outline-none font-bold">
+                                    <option value="Solicitada">Solicitada</option><option value="Em Diagnóstico">Em Diagnóstico</option><option value="Aguardando Aprovação">Aguardando Aprovação</option><option value="Aguardando Peças">Aguardando Peças</option><option value="Em Execução">Em Execução</option><option value="Concluída">Concluída</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Responsável</label>
+                                    <select id="manage-assigned" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Prazo Estimado</label>
+                                    <input type="date" id="manage-deadline" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="text-[10px] font-bold text-gray-600 uppercase">Revisar Matriz GUT</label>
+                                    <span id="manage-gut-score" class="text-xs font-bold px-1.5 py-0.5 rounded border bg-white text-success border-green-200">0</span>
+                                </div>
+                                <div class="flex gap-1 mb-3">
+                                    <select id="manage-gut-g" onchange="calculateGUT('manage')" class="flex-1 p-2 text-xs bg-white border rounded outline-none font-bold text-dark"><option value="1">G1</option><option value="2">G2</option><option value="3">G3</option><option value="4">G4</option><option value="5">G5</option></select>
+                                    <select id="manage-gut-u" onchange="calculateGUT('manage')" class="flex-1 p-2 text-xs bg-white border rounded outline-none font-bold text-dark"><option value="1">U1</option><option value="2">U2</option><option value="3">U3</option><option value="4">U4</option><option value="5">U5</option></select>
+                                    <select id="manage-gut-t" onchange="calculateGUT('manage')" class="flex-1 p-2 text-xs bg-white border rounded outline-none font-bold text-dark"><option value="1">T1</option><option value="2">T2</option><option value="3">T3</option><option value="4">T4</option><option value="5">T5</option></select>
+                                </div>
+                                
+                                <div class="p-2 bg-white rounded border border-gray-200 text-[10px] text-gray-600 space-y-1">
+                                    <p><strong class="text-dark">G:</strong> 1-Sem grav., 2-Pouco grave, 3-Grave, 4-Muito grave, 5-Extremamente.</p>
+                                    <p><strong class="text-dark">U:</strong> 1-Espera, 2-Pouco urg., 3-Urgente, 4-Muito urg., 5-Ação imediata.</p>
+                                    <p><strong class="text-dark">T:</strong> 1-Não muda, 2-Longo prazo, 3-Médio, 4-Curto, 5-Rápida.</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Diagnóstico / Ação Tomada</label>
+                                <textarea id="manage-diagnostic" rows="2" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none"></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Materiais Utilizados (Almoxarifado)</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" id="item-name" placeholder="Nome da peça" class="flex-1 p-2 text-xs rounded border border-gray-300 outline-none">
+                                    <input type="number" id="item-qtd" placeholder="Qtd" class="w-16 p-2 text-xs rounded border border-gray-300 outline-none text-center" min="1" value="1">
+                                    <button type="button" onclick="addItemToOS()" class="bg-dark text-white px-3 rounded hover:bg-gray-800 transition"><i class="fas fa-plus text-xs"></i></button>
+                                </div>
+                                <ul id="manage-items-list" class="text-xs space-y-1 bg-gray-50 rounded p-2 empty:hidden border border-gray-200"></ul>
+                            </div>
+
+                            <button type="button" onclick="saveOSManagement()" class="w-full py-3 text-sm font-bold text-brand bg-dark rounded hover:bg-gray-800 transition shadow mt-2">
+                                Atualizar OS
+                            </button>
+                        </form>
+
+                        <div id="readonly-management" class="text-sm space-y-3">
+                            <p><span class="text-gray-500 text-xs">Atribuído a:</span> <span class="font-bold block" id="print-assigned"></span></p>
+                            <p><span class="text-gray-500 text-xs">Prazo:</span> <span class="font-bold block" id="print-deadline"></span></p>
+                            <div>
+                                <span class="text-gray-500 text-xs block mb-1">Diagnóstico:</span>
+                                <p id="print-diagnostic" class="bg-gray-50 p-2 rounded border text-sm whitespace-pre-wrap"></p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs block mb-1">Materiais:</span>
+                                <ul id="print-items" class="list-disc pl-4 text-sm empty:hidden font-medium"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vale Almoxarifado Oculto -->
+            <div id="print-area-almo" class="hidden no-print">
+                <div class="border-2 border-dark p-6 rounded text-dark">
+                    <div class="flex justify-between items-center border-b-2 border-dark pb-4 mb-4">
+                        <img src="" class="h-10 print-logo-src grayscale">
+                        <div class="text-right">
+                            <h2 class="text-xl font-black uppercase">Vale Materiais - Manutenção</h2>
+                            <p class="text-sm font-bold" id="almo-os-id"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+                        <p><span class="font-bold">Setor Requisitante:</span> <span id="almo-sector"></span></p>
+                        <p><span class="font-bold">Técnico Responsável:</span> <span id="almo-tech"></span></p>
+                        <p><span class="font-bold">Data de Fechamento:</span> <span id="almo-date"></span></p>
+                    </div>
+
+                    <h3 class="font-bold text-lg mb-2">Itens Consumidos:</h3>
+                    <table class="w-full text-left border-collapse mb-10">
+                        <thead>
+                            <tr class="bg-gray-100 border border-dark">
+                                <th class="p-2 border border-dark">Qtd</th>
+                                <th class="p-2 border border-dark">Descrição da Peça/Material</th>
+                            </tr>
+                        </thead>
+                        <tbody id="almo-items-tbody"></tbody>
+                    </table>
+
+                    <div class="flex justify-between mt-16 px-10">
+                        <div class="text-center w-1/3">
+                            <div class="border-t border-dark pt-1 text-sm font-bold">Ass. Almoxarifado</div>
+                        </div>
+                        <div class="text-center w-1/3">
+                            <div class="border-t border-dark pt-1 text-sm font-bold">Ass. Manutenção</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Settings -->
+        <div id="view-settings" class="view-section hidden p-6 max-w-md mx-auto slide-up pb-32">
+            <h2 class="text-xl font-bold text-dark mb-6">Configurações</h2>
+            <div class="space-y-4">
+                
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-sm mb-2 text-dark"><i class="fas fa-mobile-alt text-brand mr-1"></i> Instalar Aplicativo</h3>
+                    <p class="text-xs text-gray-500 mb-4">Instale este sistema no seu dispositivo para acesso rápido na tela inicial.</p>
+                    <button id="install-app-btn" onclick="installApp()" class="w-full bg-brand text-dark font-bold py-2.5 rounded-lg shadow-sm active:scale-95 transition flex items-center justify-center gap-2 border border-yellow-500">
+                        <i class="fas fa-download"></i> <span id="install-app-btn-text">Instalar no Dispositivo</span>
+                    </button>
+                    <p id="install-app-hint" class="text-[10px] text-center text-gray-400 mt-2 hidden">A instalação já foi realizada ou o navegador não suporta.</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-sm mb-3 text-dark">Logo do Sistema</h3>
+                    <input type="file" onchange="updateLogo(event)" class="text-xs w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brandLight file:text-brand hover:file:bg-yellow-100 transition">
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-sm mb-3 text-dark">Gerenciar Setores</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-sector-input" placeholder="Novo setor..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <button onclick="addSector()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
+                    </div>
+                    <ul id="list-settings-sectors" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-sm mb-3 text-dark">Equipe de Manutenção</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-collab-input" placeholder="Novo colaborador..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <button onclick="addCollaborator()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
+                    </div>
+                    <ul id="list-settings-collaborators" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA INFERIOR COM BOTÃO DE NOVA OS DESTACADO -->
+        <div id="bottom-bar-new-os" class="fixed bottom-0 w-full px-6 py-4 z-40 bg-grayBg/90 backdrop-blur pointer-events-none hidden flex-col items-center">
+            <button onclick="navigate('new-os')" class="pointer-events-auto w-full max-w-sm bg-dark text-brand font-black text-[13px] uppercase tracking-wider py-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all border-2 border-gray-800">
+                <i class="fas fa-plus-circle text-xl"></i> Registrar Nova Ocorrência
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Toast de Notificação -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 -translate-y-10 opacity-0 bg-dark text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 z-50 text-sm font-bold flex items-center gap-2 pointer-events-none">
+        <i class="fas fa-bell text-brand"></i> <span id="toast-msg">Mensagem</span>
+    </div>
+
+    <!-- Módulo do Firebase e Scripts da Aplicação -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Configuração do Firebase com suporte tanto ao ambiente atual quanto ao seu domínio
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyBg0q1TSpA6U3G718A94Z28EF7m3pwlcs0",
+            authDomain: "manutencao-a4ac3.firebaseapp.com",
+            projectId: "manutencao-a4ac3",
+            storageBucket: "manutencao-a4ac3.firebasestorage.app",
+            messagingSenderId: "760970980011",
+            appId: "1:760970980011:web:1c756b199ef264575be5ee",
+            measurementId: "G-27K5CNXYCE"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let appState = {
+            currentUser: null, 
+            logo: "https://via.placeholder.com/150x50?text=LOGO",
+            sectors: [],
+            collaborators: [],
+            orders: [],
+            tempItems: [],
+            currentListSector: null
+        };
+        let currentViewId = 'login';
+
+        // --- SISTEMA DE AUTENTICAÇÃO OBRIGATÓRIA PARA EVITAR "PERMISSION DENIED" ---
+        const initAuthAndData = async () => {
+            try {
+                // Tenta autenticar via Token do sistema atual ou cria um usuário anônimo
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Assim que estiver autenticado (seguro), chamamos os dados do banco
+                setupDatabaseListeners();
+
+            } catch (err) {
+                console.error("Erro de Autenticação Firebase:", err);
+                showToast("Falha ao se conectar com o banco de dados.");
+                if(currentViewId === 'home') renderHome();
+            }
+        };
+
+        // Helpers de rotas seguras para o banco
+        const getSettingsDoc = () => {
+            return typeof __app_id !== 'undefined' 
+                ? doc(db, 'artifacts', __app_id, 'public', 'data', 'settings', 'general') 
+                : doc(db, "settings", "general");
+        };
+
+        const getOrdersCol = () => {
+            return typeof __app_id !== 'undefined' 
+                ? collection(db, 'artifacts', __app_id, 'public', 'data', 'orders') 
+                : collection(db, "orders");
+        };
+
+        const getOrderDoc = (id) => {
+            return typeof __app_id !== 'undefined' 
+                ? doc(db, 'artifacts', __app_id, 'public', 'data', 'orders', id) 
+                : doc(db, "orders", id);
+        };
+
+        function setupDatabaseListeners() {
+            onSnapshot(getSettingsDoc(), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    appState.sectors = data.sectors || [];
+                    appState.collaborators = data.collaborators || [];
+                    appState.logo = data.logo || "https://via.placeholder.com/150x50?text=LOGO";
+                    
+                    const logoEl = document.getElementById('header-logo');
+                    if(logoEl) logoEl.src = appState.logo;
+
+                    if(currentViewId === 'settings') renderSettings();
+                    if(currentViewId === 'home') renderHome();
+                } else {
+                    // Dados iniciais Padrão
+                    setDoc(getSettingsDoc(), {
+                        sectors: [
+                            { name: "PRODUÇÃO" }, { name: "ESTOQUE" }, { name: "EXPEDIÇÃO" }, { name: "P&D" }
+                        ],
+                        collaborators: ["Equipe Técnica"],
+                        logo: "https://via.placeholder.com/150x50?text=LOGO"
+                    }).catch(e => console.error("Erro setup inicial:", e));
+                }
+            }, (err) => console.error("Settings Snap Error:", err));
+
+            onSnapshot(getOrdersCol(), (snapshot) => {
+                appState.orders = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
+                if(currentViewId === 'home') renderHome();
+                if(currentViewId === 'sector-os') renderSectorList();
+            }, (err) => console.error("Orders Snap Error:", err));
+        }
+
+        // Inicia a aplicação chamando a função
+        initAuthAndData();
+
+
+        // Funções de UI
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = message;
+            toast.classList.remove('-translate-y-10', 'opacity-0');
+            toast.classList.add('translate-y-4', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-100');
+                toast.classList.add('-translate-y-10', 'opacity-0');
+            }, 3500);
+        }
+
+        // --- SISTEMA PWA ---
+        let deferredPrompt;
+        function initPWA() {
+            const manifest = {
+                "name": "Controle de Manutenção",
+                "short_name": "Manutenção",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#f4f5f7",
+                "theme_color": "#DDA800",
+                "icons": [{
+                    "src": "https://via.placeholder.com/192x192.png?text=OS",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }, {
+                    "src": "https://via.placeholder.com/512x512.png?text=OS",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            document.querySelector('head').insertAdjacentHTML('beforeend', `<link rel="manifest" href="${manifestUrl}">`);
+
+            const swCode = `self.addEventListener('install', (e) => { self.skipWaiting(); }); self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); }); self.addEventListener('fetch', (e) => { });`;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            const swUrl = URL.createObjectURL(swBlob);
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(swUrl).catch(err => console.log("SW check"));
+            }
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                const btn = document.getElementById('install-app-btn');
+                if(btn) {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.innerText = "Instalar no Dispositivo";
+                    document.getElementById('install-app-hint').classList.add('hidden');
+                }
+            });
+        }
+
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showToast("Instalação iniciada!");
+                    deferredPrompt = null;
+                }
+            } else {
+                showToast("Abra no Chrome (Android) ou Safari (iOS) para instalar.");
+                document.getElementById('install-app-hint').classList.remove('hidden');
+            }
+        }
+
+        // --- NAVEGAÇÃO E LOGIN ---
+        function login(role) {
+            appState.currentUser = { role };
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            
+            const isMaint = role === 'maintenance';
+            document.querySelectorAll('.req-action').forEach(el => el.style.display = isMaint ? 'none' : 'flex');
+            document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaint ? 'flex' : 'none');
+            
+            navigate('home');
+        }
+
+        function logout() {
+            appState.currentUser = null;
+            currentViewId = 'login';
+            document.getElementById('view-login').classList.remove('hidden');
+            document.getElementById('main-header').classList.add('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('bottom-bar-new-os').classList.add('hidden');
+        }
+
+        function navigate(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            
+            if(viewId === 'my-os') {
+                appState.currentListSector = null; 
+                viewId = 'sector-os';
+            }
+
+            currentViewId = viewId;
+
+            if(viewId === 'home') renderHome();
+            if(viewId === 'sector-os') renderSectorList();
+            if(viewId === 'new-os') populateNewOS();
+            if(viewId === 'settings') renderSettings();
+            
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            
+            const fab = document.getElementById('bottom-bar-new-os');
+            if(viewId !== 'new-os' && appState.currentUser) {
+                fab.classList.remove('hidden');
+                fab.classList.add('flex');
+            } else {
+                fab.classList.add('hidden');
+                fab.classList.remove('flex');
+            }
+            
+            window.scrollTo(0,0);
+        }
+
+        // --- HOME E SETORES ---
+        function renderHome() {
+            const grid = document.getElementById('sector-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+
+            appState.sectors.forEach(s => {
+                const pendentes = appState.orders.filter(o => o.sector === s.name && ['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status)).length;
+                const andamento = appState.orders.filter(o => o.sector === s.name && ['Em Diagnóstico', 'Em Execução'].includes(o.status)).length;
+                const resolvidas = appState.orders.filter(o => o.sector === s.name && o.status === 'Concluída').length;
+                
+                let statsHtml = '';
+                if(pendentes === 0 && andamento === 0 && resolvidas === 0) {
+                    statsHtml = `<span class="text-gray-400 italic text-sm font-medium">Livre</span>`;
+                } else {
+                    statsHtml = `<div class="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider">`;
+                    if(pendentes > 0) statsHtml += `<span class="text-danger">${pendentes} Pendente(s)</span>`;
+                    if(andamento > 0) statsHtml += `<span class="text-warning">${andamento} Em Andamento</span>`;
+                    if(resolvidas > 0) statsHtml += `<span class="text-success">${resolvidas} Resolvida(s)</span>`;
+                    statsHtml += `</div>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition active:scale-95 border border-transparent hover:border-brand flex flex-col justify-between" style="min-height: 120px;" onclick="openSector('${s.name}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 shrink-0"><i class="fas fa-list-ul text-sm"></i></div>
+                            <h3 class="font-bold text-dark text-sm uppercase tracking-wide truncate">${s.name}</h3>
+                        </div>
+                        <div class="flex justify-between items-end mt-4">
+                            ${statsHtml}
+                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0 ml-2"><i class="fas fa-arrow-right text-xs"></i></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const total = appState.orders.length;
+            const concluidas = appState.orders.filter(o => o.status === 'Concluída').length;
+            const pct = total === 0 ? 0 : Math.round((concluidas / total) * 100);
+            
+            const progressPct = document.getElementById('progress-percent');
+            const progressBar = document.getElementById('progress-bar');
+            const progressTxt = document.getElementById('progress-text');
+
+            if(progressPct) progressPct.innerText = `${pct}%`;
+            if(progressBar) progressBar.style.width = `${pct}%`;
+            if(progressTxt) progressTxt.innerText = `${concluidas}/${total} OS concluídas`;
+
+            if(appState.currentUser && appState.currentUser.role === 'requester') {
+                const b = document.getElementById('badge-my-os');
+                if(b) b.style.display = appState.orders.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        function openSector(sectorName) {
+            appState.currentListSector = sectorName;
+            navigate('sector-os');
+        }
+
+        const getStatusStyles = (status) => {
+            if(status === 'Concluída') return 'bg-gray-100 text-gray-500 border-gray-200';
+            if(status === 'Solicitada') return 'bg-white text-gray-600 border-gray-300';
+            if(status.includes('Aguardando')) return 'bg-orange-50 text-warning border-orange-200';
+            return 'bg-brand/10 text-dark border-brand'; 
+        };
+
+        function renderSectorList() {
+            const container = document.getElementById('os-list-container');
+            const term = document.getElementById('search-os').value.toLowerCase();
+            
+            const isMyHistory = appState.currentListSector === null;
+            const isConcluidas = appState.currentListSector === 'CONCLUIDAS';
+            
+            const filtersBlock = document.getElementById('concluidas-filters');
+            if(isConcluidas) {
+                filtersBlock.classList.remove('hidden');
+                document.getElementById('list-sector-title').innerText = "OS Concluídas";
+                
+                const secSelect = document.getElementById('filter-c-sector');
+                if(secSelect.options.length <= 1) { 
+                    const unicos = [...new Set(appState.orders.filter(o => o.status === 'Concluída').map(o => o.sector))];
+                    unicos.forEach(s => secSelect.innerHTML += `<option value="${s}">${s}</option>`);
+                }
+            } else {
+                filtersBlock.classList.add('hidden');
+                document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
+            }
+
+            let filtered = [...appState.orders];
+            
+            if(isConcluidas) {
+                filtered = filtered.filter(o => o.status === 'Concluída');
+                const fSector = document.getElementById('filter-c-sector').value;
+                if(fSector) filtered = filtered.filter(o => o.sector === fSector);
+                
+                const fDate = document.getElementById('filter-c-date').value;
+                if(fDate) {
+                    filtered = filtered.filter(o => o.createdAt.startsWith(fDate));
+                }
+                
+                filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            } else if(!isMyHistory) {
+                filtered = filtered.filter(o => o.sector === appState.currentListSector && o.status !== 'Concluída');
+                filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            } else {
+                filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            if(term) {
+                filtered = filtered.filter(o => o.id.toLowerCase().includes(term) || o.description.toLowerCase().includes(term));
+            }
+
+            container.innerHTML = '';
+            if(filtered.length === 0) {
+                container.innerHTML = `<div class="text-center p-8 text-gray-400 text-sm border-2 border-dashed rounded-xl border-gray-200">Nenhuma OS encontrada.</div>`;
+                return;
+            }
+
+            filtered.forEach(os => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-brand cursor-pointer shadow-sm active:scale-[0.98] transition";
+                card.onclick = () => openOSDetails(os.id);
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-brand font-black text-sm">${os.id}</span>
+                            ${(isMyHistory || isConcluidas) ? `<div class="text-[10px] text-gray-500 font-bold">${os.sector}</div>` : ''}
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded border uppercase ${getStatusStyles(os.status)}">${os.status}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 line-clamp-2 mb-3">${os.description}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-gray-400 font-medium">${new Date(os.createdAt).toLocaleDateString('pt-BR')}</span>
+                        <span class="text-[10px] font-bold text-gray-500">GUT: ${os.gut.score}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- NOVA OS ---
+        function populateNewOS() {
+            try {
+                const select = document.getElementById('os-sector');
+                select.innerHTML = '<option value="" disabled selected>Escolha o setor...</option>';
+                appState.sectors.forEach(s => {
+                    if(s && s.name) select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+                });
+                document.getElementById('os-requester').value = ''; 
+                
+                const photoCam = document.getElementById('os-photo-cam');
+                const photoGal = document.getElementById('os-photo-gal');
+                if(photoCam) photoCam.removeAttribute('data-base64');
+                if(photoGal) photoGal.removeAttribute('data-base64');
+                const imgPreview = document.getElementById('preview-new-photo');
+                if(imgPreview) { imgPreview.src = ''; imgPreview.classList.add('hidden'); }
+                
+                calculateGUT('new');
+            } catch(e) {
+                console.error("Erro ao preparar nova OS", e);
+            }
+        }
+
+        function calculateGUT(context) {
+            try {
+                const pfx = context === 'new' ? 'gut-' : 'manage-gut-';
+                const gEl = document.getElementById(pfx+'g');
+                const uEl = document.getElementById(pfx+'u');
+                const tEl = document.getElementById(pfx+'t');
+                
+                if(!gEl || !uEl || !tEl) return { g: 3, u: 3, t: 3, score: 27 };
+
+                const score = parseInt(gEl.value) * parseInt(uEl.value) * parseInt(tEl.value);
+                const display = document.getElementById(context === 'new' ? 'gut-score-display' : 'manage-gut-score');
+                
+                if(display) {
+                    display.innerText = score;
+                    display.className = `text-xs font-bold px-2 py-1 rounded border ${score >= 80 ? 'text-danger bg-red-50 border-red-200' : (score >= 40 ? 'text-warning bg-orange-50 border-orange-200' : 'text-success bg-green-50 border-green-200')}`;
+                }
+                return { g: parseInt(gEl.value), u: parseInt(uEl.value), t: parseInt(tEl.value), score };
+            } catch (err) {
+                console.error("Erro ao calcular GUT:", err);
+                return { g: 3, u: 3, t: 3, score: 27 };
+            }
+        }
+
+        function previewPhoto(event, imgId, type) {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        let scaleSize = MAX_WIDTH / img.width;
+                        if(scaleSize > 1) scaleSize = 1; 
+                        
+                        canvas.width = img.width * scaleSize;
+                        canvas.height = img.height * scaleSize;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); 
+                        
+                        document.getElementById(imgId).src = compressedBase64;
+                        document.getElementById(imgId).classList.remove('hidden');
+                        document.getElementById(`os-photo-${type}`).setAttribute('data-base64', compressedBase64);
+                    }
+                    img.src = e.target.result;
+                }; 
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function handleNewOS(e) {
+            e.preventDefault();
+            try {
+                const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const newId = `OS-${dateStr}-${String(appState.orders.length + 1).padStart(3, '0')}`;
+                
+                let base64Photo = null;
+                const photoCam = document.getElementById('os-photo-cam');
+                const photoGal = document.getElementById('os-photo-gal');
+                
+                if(photoCam && photoCam.hasAttribute('data-base64')) base64Photo = photoCam.getAttribute('data-base64');
+                else if(photoGal && photoGal.hasAttribute('data-base64')) base64Photo = photoGal.getAttribute('data-base64');
+
+                const newOS = {
+                    id: newId,
+                    requester: document.getElementById('os-requester').value,
+                    sector: document.getElementById('os-sector').value,
+                    description: document.getElementById('os-description').value,
+                    photo: base64Photo,
+                    gut: calculateGUT('new'), 
+                    status: "Solicitada",
+                    createdAt: new Date().toISOString(), 
+                    deadline: "", assignedTo: "", diagnostic: "", itemsUsed: []
+                };
+
+                await addDoc(getOrdersCol(), newOS);
+
+                e.target.reset();
+                showToast("Ocorrência registrada! A manutenção foi notificada.");
+                setTimeout(() => navigate('home'), 1000);
+
+            } catch (err) {
+                console.error("Falha ao salvar OS:", err);
+                showToast("Falha no preenchimento ou tamanho excedido.");
+            }
+        }
+
+        // --- GESTÃO DE OS ---
+        function openOSDetails(id) {
+            const os = appState.orders.find(o => o.id === id);
+            if(!os) return;
+
+            document.getElementById('detail-id').innerText = os.id;
+            document.getElementById('detail-date').innerText = new Date(os.createdAt).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'});
+            document.getElementById('detail-sector').innerText = os.sector;
+            document.getElementById('detail-requester').innerText = os.requester;
+            document.getElementById('detail-description').innerText = os.description;
+            
+            const badge = document.getElementById('detail-status-badge');
+            badge.innerText = os.status;
+            badge.className = `px-2 py-0.5 rounded text-[10px] font-bold uppercase border block mb-1 ${getStatusStyles(os.status)}`;
+            
+            const gutBadge = document.getElementById('detail-gut-badge');
+            gutBadge.innerText = 'GUT: ' + os.gut.score;
+            gutBadge.className = `px-2 py-0.5 rounded text-[10px] font-bold border ${os.gut.score >= 80 ? 'text-danger border-red-200 bg-red-50' : (os.gut.score >= 40 ? 'text-warning border-orange-200 bg-orange-50' : 'text-success border-green-200 bg-green-50')}`;
+
+            if(os.photo) { document.getElementById('detail-photo').src = os.photo; document.getElementById('detail-photo-container').classList.remove('hidden'); }
+            else document.getElementById('detail-photo-container').classList.add('hidden');
+
+            const isMaint = appState.currentUser.role === 'maintenance';
+            document.getElementById('form-manage-os').classList.toggle('hidden', !isMaint);
+            document.getElementById('readonly-management').classList.toggle('hidden', isMaint);
+            
+            document.getElementById('btn-print-os').classList.toggle('hidden', !isMaint);
+            document.getElementById('btn-share-whatsapp').classList.toggle('hidden', !isMaint); 
+            
+            const showAlmo = isMaint && os.status === 'Concluída' && os.itemsUsed && os.itemsUsed.length > 0;
+            document.getElementById('btn-print-almo').classList.toggle('hidden', !showAlmo);
+
+            if (isMaint) {
+                document.getElementById('manage-os-id').value = os.id;
+                document.getElementById('manage-os-dbid').value = os.dbId;
+                document.getElementById('manage-status').value = os.status;
+                document.getElementById('manage-diagnostic').value = os.diagnostic || '';
+                document.getElementById('manage-deadline').value = os.deadline ? os.deadline.split('T')[0] : '';
+                document.getElementById('manage-gut-g').value = os.gut.g;
+                document.getElementById('manage-gut-u').value = os.gut.u;
+                document.getElementById('manage-gut-t').value = os.gut.t;
+                calculateGUT('manage');
+
+                const assignSelect = document.getElementById('manage-assigned');
+                assignSelect.innerHTML = '<option value="">Nenhum</option>';
+                appState.collaborators.forEach(c => assignSelect.innerHTML += `<option value="${c}" ${os.assignedTo === c ? 'selected' : ''}>${c}</option>`);
+
+                appState.tempItems = [...(os.itemsUsed || [])];
+                renderManageItems();
+                
+                document.getElementById('almo-os-id').innerText = os.id;
+                document.getElementById('almo-sector').innerText = os.sector;
+                document.getElementById('almo-tech').innerText = os.assignedTo || 'Não informado';
+                document.getElementById('almo-date').innerText = new Date().toLocaleDateString('pt-BR');
+                const tbody = document.getElementById('almo-items-tbody');
+                tbody.innerHTML = '';
+                if(os.itemsUsed) {
+                    os.itemsUsed.forEach(i => tbody.innerHTML += `<tr><td class="p-2 border border-dark font-bold text-center">${i.qtd}</td><td class="p-2 border border-dark">${i.name}</td></tr>`);
+                }
+                document.querySelectorAll('.print-logo-src').forEach(img => img.src = appState.logo);
+
+            } else {
+                document.getElementById('print-assigned').innerText = os.assignedTo || 'Aguardando atribuição';
+                document.getElementById('print-deadline').innerText = os.deadline ? new Date(os.deadline).toLocaleDateString('pt-BR') : '-';
+                document.getElementById('print-diagnostic').innerText = os.diagnostic || '-';
+                const pItems = document.getElementById('print-items');
+                pItems.innerHTML = '';
+                if(os.itemsUsed) {
+                    os.itemsUsed.forEach(i => pItems.innerHTML += `<li>${i.qtd}x - ${i.name}</li>`);
+                }
+            }
+            
+            navigate('os-details');
+        }
+
+        function renderManageItems() {
+            const list = document.getElementById('manage-items-list');
+            list.innerHTML = '';
+            appState.tempItems.forEach((item, idx) => {
+                list.innerHTML += `<li class="flex justify-between items-center py-1 border-b border-gray-200 last:border-0"><span class="text-dark"><span class="font-bold mr-1">${item.qtd}x</span> ${item.name}</span><button type="button" onclick="removeItem(${idx})" class="text-danger"><i class="fas fa-times"></i></button></li>`;
+            });
+        }
+
+        function addItemToOS() {
+            const name = document.getElementById('item-name').value;
+            const qtd = parseInt(document.getElementById('item-qtd').value);
+            if(name && qtd > 0) { appState.tempItems.push({name, qtd}); document.getElementById('item-name').value = ''; renderManageItems(); }
+        }
+
+        function removeItem(idx) { appState.tempItems.splice(idx, 1); renderManageItems(); }
+
+        async function saveOSManagement() {
+            const id = document.getElementById('manage-os-id').value;
+            const dbId = document.getElementById('manage-os-dbid').value;
+            const osIndex = appState.orders.findIndex(o => o.id === id);
+            
+            if(osIndex > -1 && dbId) {
+                const oldStatus = appState.orders[osIndex].status;
+                const newStatus = document.getElementById('manage-status').value;
+                const dateInput = document.getElementById('manage-deadline').value;
+                
+                let isoDeadline = "";
+                if(dateInput) {
+                    const d = new Date(dateInput); d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+                    isoDeadline = d.toISOString();
+                }
+
+                await updateDoc(getOrderDoc(dbId), {
+                    status: newStatus,
+                    assignedTo: document.getElementById('manage-assigned').value,
+                    diagnostic: document.getElementById('manage-diagnostic').value,
+                    gut: calculateGUT('manage'),
+                    itemsUsed: [...appState.tempItems],
+                    deadline: isoDeadline
+                });
+
+                if(oldStatus !== newStatus) {
+                    showToast(`Status atualizado para '${newStatus}'. Pode avisar o solicitante via WhatsApp.`);
+                } else {
+                    showToast('OS Atualizada com sucesso no banco de dados.');
+                }
+
+                openOSDetails(id); 
+            }
+        }
+
+        function shareWhatsApp() {
+            const id = document.getElementById('manage-os-id').value;
+            const os = appState.orders.find(o => o.id === id);
+            if(!os) return;
+
+            let mensagem = `*Atualização de Ocorrência*\n\n`;
+            mensagem += `Olá ${os.requester},\n`;
+            mensagem += `Sua solicitação *${os.id}* no setor *${os.sector}* foi atualizada.\n\n`;
+            mensagem += `*Status Atual:* ${os.status}\n`;
+            if(os.assignedTo) mensagem += `*Responsável:* ${os.assignedTo}\n`;
+            if(os.diagnostic) mensagem += `*Diagnóstico:* ${os.diagnostic}\n`;
+            if(os.deadline) mensagem += `*Prazo Estimado:* ${new Date(os.deadline).toLocaleDateString('pt-BR')}\n`;
+            mensagem += `\n_Para mais detalhes, acesse o sistema de manutenção._`;
+
+            const textoCodificado = encodeURIComponent(mensagem);
+            window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
+        }
+
+        function printDocument(type) {
+            document.body.classList.remove('print-os', 'print-almo');
+            document.body.classList.add(`print-${type}`);
+            window.print();
+            setTimeout(() => document.body.classList.remove('print-os', 'print-almo'), 1000);
+        }
+
+        // --- CONFIGURAÇÕES DO SISTEMA ---
+        function renderSettings() {
+            const ulSectors = document.getElementById('list-settings-sectors');
+            if(ulSectors) {
+                ulSectors.innerHTML = '';
+                appState.sectors.forEach((s, idx) => {
+                    ulSectors.innerHTML += `
+                        <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
+                            <span class="font-medium">${s.name}</span>
+                            <div class="flex gap-3">
+                                <button onclick="editSector(${idx})" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteSector(${idx})" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>`;
+                });
+            }
+
+            const ulCollabs = document.getElementById('list-settings-collaborators');
+            if(ulCollabs) {
+                ulCollabs.innerHTML = '';
+                appState.collaborators.forEach((c, idx) => {
+                    ulCollabs.innerHTML += `
+                        <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
+                            <span class="font-medium">${c}</span>
+                            <div class="flex gap-3">
+                                <button onclick="editCollaborator(${idx})" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteCollaborator(${idx})" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>`;
+                });
+            }
+        }
+
+        async function addSector() {
+            const input = document.getElementById('new-sector-input');
+            const val = input.value.trim();
+            if(val) {
+                const newSectors = [...appState.sectors, { name: val }];
+                await updateDoc(getSettingsDoc(), { sectors: newSectors });
+                input.value = '';
+                showToast("Setor adicionado ao banco!");
+            }
+        }
+
+        function editSector(idx) {
+            const ulSectors = document.getElementById('list-settings-sectors');
+            const li = ulSectors.children[idx];
+            const currentName = appState.sectors[idx].name;
+            li.innerHTML = `
+                <div class="flex gap-2 w-full items-center">
+                    <input type="text" id="edit-sector-${idx}" value="${currentName}" class="flex-1 p-1.5 text-sm border border-brand rounded outline-none">
+                    <button onclick="saveEditSector(${idx})" class="text-success p-1"><i class="fas fa-check"></i></button>
+                    <button onclick="renderSettings()" class="text-danger p-1"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+        }
+
+        async function saveEditSector(idx) {
+            const val = document.getElementById(`edit-sector-${idx}`).value.trim();
+            if(val) {
+                appState.sectors[idx].name = val;
+                await updateDoc(getSettingsDoc(), { sectors: appState.sectors });
+                showToast("Setor atualizado no banco!");
+            }
+        }
+
+        async function deleteSector(idx) {
+            appState.sectors.splice(idx, 1);
+            await updateDoc(getSettingsDoc(), { sectors: appState.sectors });
+            showToast("Setor removido do banco.");
+        }
+
+        async function addCollaborator() {
+            const input = document.getElementById('new-collab-input');
+            const val = input.value.trim();
+            if(val) {
+                const newCollabs = [...appState.collaborators, val];
+                await updateDoc(getSettingsDoc(), { collaborators: newCollabs });
+                input.value = '';
+                showToast("Colaborador adicionado!");
+            }
+        }
+
+        function editCollaborator(idx) {
+            const ulCollabs = document.getElementById('list-settings-collaborators');
+            const li = ulCollabs.children[idx];
+            const currentName = appState.collaborators[idx];
+            li.innerHTML = `
+                <div class="flex gap-2 w-full items-center">
+                    <input type="text" id="edit-collab-${idx}" value="${currentName}" class="flex-1 p-1.5 text-sm border border-brand rounded outline-none">
+                    <button onclick="saveEditCollaborator(${idx})" class="text-success p-1"><i class="fas fa-check"></i></button>
+                    <button onclick="renderSettings()" class="text-danger p-1"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+        }
+
+        async function saveEditCollaborator(idx) {
+            const val = document.getElementById(`edit-collab-${idx}`).value.trim();
+            if(val) {
+                appState.collaborators[idx] = val;
+                await updateDoc(getSettingsDoc(), { collaborators: appState.collaborators });
+                showToast("Colaborador atualizado!");
+            }
+        }
+
+        async function deleteCollaborator(idx) {
+            appState.collaborators.splice(idx, 1);
+            await updateDoc(getSettingsDoc(), { collaborators: appState.collaborators });
+            showToast("Colaborador removido.");
+        }
+
+        function updateLogo(e) {
+            if(e.target.files[0]) {
+                const r = new FileReader();
+                r.onload = async (ev) => { 
+                    const novaLogo = ev.target.result;
+                    await updateDoc(getSettingsDoc(), { logo: novaLogo });
+                    showToast('Logotipo atualizado no banco!');
+                };
+                r.readAsDataURL(e.target.files[0]);
+            }
+        }
+
+        // --- MAPEAR FUNÇÕES PARA O WINDOW (Essencial em type="module") ---
+        window.login = login;
+        window.logout = logout;
+        window.navigate = navigate;
+        window.openSector = openSector;
+        window.renderSectorList = renderSectorList;
+        window.calculateGUT = calculateGUT;
+        window.previewPhoto = previewPhoto;
+        window.handleNewOS = handleNewOS;
+        window.openOSDetails = openOSDetails;
+        window.addItemToOS = addItemToOS;
+        window.removeItem = removeItem;
+        window.saveOSManagement = saveOSManagement;
+        window.shareWhatsApp = shareWhatsApp;
+        window.printDocument = printDocument;
+        window.updateLogo = updateLogo;
+        window.addSector = addSector;
+        window.editSector = editSector;
+        window.saveEditSector = saveEditSector;
+        window.deleteSector = deleteSector;
+        window.addCollaborator = addCollaborator;
+        window.editCollaborator = editCollaborator;
+        window.saveEditCollaborator = saveEditCollaborator;
+        window.deleteCollaborator = deleteCollaborator;
+        window.installApp = installApp;
+
+    </script>
+</body>
+</html>
