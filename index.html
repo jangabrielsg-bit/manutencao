@@ -533,7 +533,7 @@
 
         // Inicia a aplicação chamando a função
         initAuthAndData();
-
+        initPWA();
 
         // Funções de UI
         function showToast(message) {
@@ -1100,9 +1100,16 @@
             const val = input.value.trim();
             if(val) {
                 const newSectors = [...appState.sectors, { name: val }];
-                await updateDoc(getSettingsDoc(), { sectors: newSectors });
+                try {
+                    await setDoc(getSettingsDoc(), { sectors: newSectors }, { merge: true });
+                    showToast("Setor adicionado ao banco!");
+                } catch(e) {
+                    console.warn("Salvando localmente. Verifique o banco.", e);
+                    appState.sectors = newSectors;
+                    renderSettings();
+                    showToast("Salvo localmente (sem banco de dados)");
+                }
                 input.value = '';
-                showToast("Setor adicionado ao banco!");
             }
         }
 
@@ -1123,15 +1130,27 @@
             const val = document.getElementById(`edit-sector-${idx}`).value.trim();
             if(val) {
                 appState.sectors[idx].name = val;
-                await updateDoc(getSettingsDoc(), { sectors: appState.sectors });
-                showToast("Setor atualizado no banco!");
+                try {
+                    await setDoc(getSettingsDoc(), { sectors: appState.sectors }, { merge: true });
+                    showToast("Setor atualizado no banco!");
+                } catch(e) {
+                    console.warn("Salvando localmente.", e);
+                    renderSettings();
+                    showToast("Salvo localmente (sem banco de dados)");
+                }
             }
         }
 
         async function deleteSector(idx) {
             appState.sectors.splice(idx, 1);
-            await updateDoc(getSettingsDoc(), { sectors: appState.sectors });
-            showToast("Setor removido do banco.");
+            try {
+                await setDoc(getSettingsDoc(), { sectors: appState.sectors }, { merge: true });
+                showToast("Setor removido do banco.");
+            } catch(e) {
+                console.warn("Removido localmente.", e);
+                renderSettings();
+                showToast("Removido localmente (sem banco de dados)");
+            }
         }
 
         async function addCollaborator() {
@@ -1139,9 +1158,16 @@
             const val = input.value.trim();
             if(val) {
                 const newCollabs = [...appState.collaborators, val];
-                await updateDoc(getSettingsDoc(), { collaborators: newCollabs });
+                try {
+                    await setDoc(getSettingsDoc(), { collaborators: newCollabs }, { merge: true });
+                    showToast("Colaborador adicionado!");
+                } catch(e) {
+                    console.warn("Salvando localmente.", e);
+                    appState.collaborators = newCollabs;
+                    renderSettings();
+                    showToast("Salvo localmente (sem banco de dados)");
+                }
                 input.value = '';
-                showToast("Colaborador adicionado!");
             }
         }
 
@@ -1162,15 +1188,27 @@
             const val = document.getElementById(`edit-collab-${idx}`).value.trim();
             if(val) {
                 appState.collaborators[idx] = val;
-                await updateDoc(getSettingsDoc(), { collaborators: appState.collaborators });
-                showToast("Colaborador atualizado!");
+                try {
+                    await setDoc(getSettingsDoc(), { collaborators: appState.collaborators }, { merge: true });
+                    showToast("Colaborador atualizado!");
+                } catch(e) {
+                    console.warn("Salvando localmente.", e);
+                    renderSettings();
+                    showToast("Salvo localmente (sem banco de dados)");
+                }
             }
         }
 
         async function deleteCollaborator(idx) {
             appState.collaborators.splice(idx, 1);
-            await updateDoc(getSettingsDoc(), { collaborators: appState.collaborators });
-            showToast("Colaborador removido.");
+            try {
+                await setDoc(getSettingsDoc(), { collaborators: appState.collaborators }, { merge: true });
+                showToast("Colaborador removido.");
+            } catch(e) {
+                console.warn("Removido localmente.", e);
+                renderSettings();
+                showToast("Removido localmente (sem banco de dados)");
+            }
         }
 
         function updateLogo(e) {
@@ -1178,8 +1216,17 @@
                 const r = new FileReader();
                 r.onload = async (ev) => { 
                     const novaLogo = ev.target.result;
-                    await updateDoc(getSettingsDoc(), { logo: novaLogo });
-                    showToast('Logotipo atualizado no banco!');
+                    appState.logo = novaLogo;
+                    const logoEl = document.getElementById('header-logo');
+                    if(logoEl) logoEl.src = novaLogo;
+
+                    try {
+                        await setDoc(getSettingsDoc(), { logo: novaLogo }, { merge: true });
+                        showToast('Logotipo atualizado no banco!');
+                    } catch(err) {
+                        console.warn("Logotipo atualizado localmente.", err);
+                        showToast('Atualizado localmente (sem banco de dados)');
+                    }
                 };
                 r.readAsDataURL(e.target.files[0]);
             }
