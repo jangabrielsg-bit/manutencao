@@ -435,10 +435,17 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Configuração do Firebase com suporte tanto ao ambiente atual quanto ao seu domínio
+        // =========================================================================
+        // ATENÇÃO: CONFIGURAÇÃO DO BANCO DE DADOS FIREBASE
+        // O banco atual (manutencao-a4ac3) pertence à plataforma que gerou o código e
+        // VAI BLOQUEAR acessos externos (como do seu GitHub) por segurança.
+        // Para funcionar online, crie um projeto gratuito no Firebase, crie um 
+        // Firestore Database em "Modo de Teste" e cole SUAS credenciais abaixo:
+        // =========================================================================
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyBg0q1TSpA6U3G718A94Z28EF7m3pwlcs0",
-            authDomain: "manutencao-a4ac3.firebaseapp.com",
-            projectId: "manutencao-a4ac3",
+            apiKey: "AIzaSyBg0q1TSpA6U3G718A94Z28EF7m3pwlcs0", // <- SUBSTITUA POR SUA API KEY
+            authDomain: "manutencao-a4ac3.firebaseapp.com",     // <- SUBSTITUA PELO SEU DOMÍNIO
+            projectId: "manutencao-a4ac3",                      // <- SUBSTITUA PELO SEU PROJECT ID
             storageBucket: "manutencao-a4ac3.firebasestorage.app",
             messagingSenderId: "760970980011",
             appId: "1:760970980011:web:1c756b199ef264575be5ee",
