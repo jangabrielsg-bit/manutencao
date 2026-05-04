@@ -97,6 +97,10 @@
                     <i class="fas fa-clock"></i>
                     <span id="badge-my-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
                 </button>
+                <button onclick="openUrgentOS()" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
+                    <i class="fas fa-bell text-red-600"></i>
+                    <span id="badge-urgent-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
+                </button>
                 <button onclick="navigate('settings')" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-cog"></i></button>
                 <button onclick="logout()" class="w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-sign-out-alt"></i></button>
             </div>
@@ -183,6 +187,10 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento com Defeito</label>
+                        <input type="text" id="os-equipment" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm" placeholder="Opcional. Ex: Máquina 1, Ar Condicionado...">
+                    </div>
+                    <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição Detalhada *</label>
                         <textarea id="os-description" required rows="3" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm" placeholder="O que está acontecendo?"></textarea>
                     </div>
@@ -258,6 +266,7 @@
                         <div class="text-sm space-y-2">
                             <p><span class="text-gray-500">Setor:</span> <span class="font-bold text-dark" id="detail-sector"></span></p>
                             <p><span class="text-gray-500">Solicitante:</span> <span class="font-bold text-dark" id="detail-requester"></span></p>
+                            <p id="detail-equipment-container" class="hidden"><span class="text-gray-500">Equipamento:</span> <span class="font-bold text-dark" id="detail-equipment"></span></p>
                             <div class="pt-2">
                                 <span class="text-gray-500 block text-xs mb-1">Descrição:</span>
                                 <p id="detail-description" class="bg-gray-50 p-3 rounded border border-gray-100 text-dark text-sm whitespace-pre-wrap"></p>
@@ -762,10 +771,20 @@
                 const b = document.getElementById('badge-my-os');
                 if(b) b.style.display = appState.orders.length > 0 ? 'block' : 'none';
             }
+            if(appState.currentUser && appState.currentUser.role === 'maintenance') {
+                const urgentOrders = appState.orders.filter(o => o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada');
+                const bUrgent = document.getElementById('badge-urgent-os');
+                if(bUrgent) bUrgent.style.display = urgentOrders.length > 0 ? 'block' : 'none';
+            }
         }
 
         function openSector(sectorName) {
             appState.currentListSector = sectorName;
+            navigate('sector-os');
+        }
+
+        function openUrgentOS() {
+            appState.currentListSector = 'URGENTES';
             navigate('sector-os');
         }
 
@@ -782,6 +801,7 @@
             
             const isMyHistory = appState.currentListSector === null;
             const isConcluidas = appState.currentListSector === 'CONCLUIDAS';
+            const isUrgentes = appState.currentListSector === 'URGENTES';
             
             const filtersBlock = document.getElementById('concluidas-filters');
             if(isConcluidas) {
@@ -793,6 +813,9 @@
                     const unicos = [...new Set(appState.orders.filter(o => o.status === 'Concluída').map(o => o.sector))];
                     unicos.forEach(s => secSelect.innerHTML += `<option value="${s}">${s}</option>`);
                 }
+            } else if(isUrgentes) {
+                filtersBlock.classList.add('hidden');
+                document.getElementById('list-sector-title').innerText = "OS Urgentes";
             } else {
                 filtersBlock.classList.add('hidden');
                 document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
@@ -811,6 +834,9 @@
                 }
                 
                 filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            } else if(isUrgentes) {
+                filtered = filtered.filter(o => o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada');
+                filtered.sort((a,b) => b.gut.score - a.gut.score); // order by score desc
             } else if(!isMyHistory) {
                 filtered = filtered.filter(o => o.sector === appState.currentListSector && o.status !== 'Concluída');
                 filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -860,6 +886,7 @@
                     if(s && s.name) select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
                 });
                 document.getElementById('os-requester').value = ''; 
+                document.getElementById('os-equipment').value = ''; 
                 
                 const photoCam = document.getElementById('os-photo-cam');
                 const photoGal = document.getElementById('os-photo-gal');
@@ -944,6 +971,7 @@
                     id: newId,
                     requester: document.getElementById('os-requester').value,
                     sector: document.getElementById('os-sector').value,
+                    equipment: document.getElementById('os-equipment').value,
                     description: document.getElementById('os-description').value,
                     photo: base64Photo,
                     gut: calculateGUT('new'), 
@@ -958,9 +986,11 @@
                 showToast("Ocorrência registrada! Redirecionando para o WhatsApp...");
                 
                 const dataFormatada = new Date().toLocaleDateString('pt-BR');
-                let mensagem = `🚨 *Nova OS Solicitada*\n\n`;
+                let urgencyEmoji = newOS.gut.u >= 4 ? ' 🚨🚨 URGENTE 🚨🚨' : '';
+                let mensagem = `🚨 *Nova OS Solicitada*${urgencyEmoji}\n\n`;
                 mensagem += `Foi aberta uma nova ordem de serviço no setor *${newOS.sector}*, por *${newOS.requester}*, na data *${dataFormatada}*.\n\n`;
                 mensagem += `*Número da OS:* ${newOS.id}\n`;
+                if(newOS.equipment) mensagem += `*Equipamento:* ${newOS.equipment}\n`;
                 mensagem += `*Pontuação GUT:* ${newOS.gut.score} (G:${newOS.gut.g} U:${newOS.gut.u} T:${newOS.gut.t})\n\n`;
                 mensagem += `*Descrição do Problema:*\n${newOS.description}\n`;
                 const appUrl = window.location.href.split('#')[0];
@@ -999,6 +1029,14 @@
             document.getElementById('detail-date').innerText = new Date(os.createdAt).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'});
             document.getElementById('detail-sector').innerText = os.sector;
             document.getElementById('detail-requester').innerText = os.requester;
+            
+            if(os.equipment) {
+                document.getElementById('detail-equipment').innerText = os.equipment;
+                document.getElementById('detail-equipment-container').classList.remove('hidden');
+            } else {
+                document.getElementById('detail-equipment-container').classList.add('hidden');
+            }
+            
             document.getElementById('detail-description').innerText = os.description;
             
             const badge = document.getElementById('detail-status-badge');
@@ -1143,9 +1181,11 @@
             const os = appState.orders.find(o => o.id === id);
             if(!os) return;
 
-            let mensagem = `*Atualização de Ocorrência*\n\n`;
+            let urgencyEmoji = os.gut && os.gut.u >= 4 ? ' 🚨🚨 URGENTE 🚨🚨' : '';
+            let mensagem = `*Atualização de Ocorrência*${urgencyEmoji}\n\n`;
             mensagem += `Olá ${os.requester},\n`;
             mensagem += `Sua solicitação *${os.id}* no setor *${os.sector}* foi atualizada.\n\n`;
+            if(os.equipment) mensagem += `*Equipamento:* ${os.equipment}\n`;
             mensagem += `*Status Atual:* ${os.status}\n`;
             if(os.assignedTo) mensagem += `*Responsável:* ${os.assignedTo}\n`;
             if(os.diagnostic) mensagem += `*Diagnóstico:* ${os.diagnostic}\n`;
@@ -1409,6 +1449,7 @@
         window.logout = logout;
         window.navigate = navigate;
         window.openSector = openSector;
+        window.openUrgentOS = openUrgentOS;
         window.renderSectorList = renderSectorList;
         window.calculateGUT = calculateGUT;
         window.previewPhoto = previewPhoto;
