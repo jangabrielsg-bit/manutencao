@@ -202,15 +202,15 @@
                         <label class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-white shadow-sm">
                             <i class="fas fa-camera text-2xl text-dark mb-1"></i>
                             <span class="text-xs font-bold text-gray-600 mt-1">Tirar Foto</span>
-                            <input id="os-photo-cam" type="file" accept="image/*" capture="environment" class="sr-only" onchange="previewPhoto(event, 'preview-new-photo', 'cam')">
+                            <input id="os-photo-cam" type="file" accept="image/*" capture="environment" class="sr-only" onchange="previewPhoto(event, 'cam')">
                         </label>
                         <label class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-white shadow-sm">
                             <i class="fas fa-images text-2xl text-dark mb-1"></i>
                             <span class="text-xs font-bold text-gray-600 mt-1">Galeria</span>
-                            <input id="os-photo-gal" type="file" accept="image/*" class="sr-only" onchange="previewPhoto(event, 'preview-new-photo', 'gal')">
+                            <input id="os-photo-gal" type="file" accept="image/*" multiple class="sr-only" onchange="previewPhoto(event, 'gal')">
                         </label>
                     </div>
-                    <img id="preview-new-photo" class="hidden mt-4 max-h-48 rounded shadow-md object-cover w-full border border-gray-200">
+                    <div id="preview-photos-container" class="grid grid-cols-3 gap-2 mt-4 empty:hidden"></div>
                 </div>
 
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
@@ -272,8 +272,8 @@
                                 <p id="detail-description" class="bg-gray-50 p-3 rounded border border-gray-100 text-dark text-sm whitespace-pre-wrap"></p>
                             </div>
                             <div id="detail-photo-container" class="hidden pt-2">
-                                <span class="text-gray-500 block text-xs mb-1">Evidência:</span>
-                                <img id="detail-photo" class="w-full rounded border">
+                                <span class="text-gray-500 block text-xs mb-1">Evidências:</span>
+                                <div id="detail-photo-grid" class="grid grid-cols-2 gap-2"></div>
                             </div>
                         </div>
                     </div>
@@ -495,6 +495,7 @@
             statuses: [],
             orders: [],
             tempItems: [],
+            newOsPhotos: [],
             currentListSector: null
         };
         let currentViewId = 'login';
@@ -887,13 +888,8 @@
                 });
                 document.getElementById('os-requester').value = ''; 
                 document.getElementById('os-equipment').value = ''; 
-                
-                const photoCam = document.getElementById('os-photo-cam');
-                const photoGal = document.getElementById('os-photo-gal');
-                if(photoCam) photoCam.removeAttribute('data-base64');
-                if(photoGal) photoGal.removeAttribute('data-base64');
-                const imgPreview = document.getElementById('preview-new-photo');
-                if(imgPreview) { imgPreview.src = ''; imgPreview.classList.add('hidden'); }
+                appState.newOsPhotos = [];
+                if(window.renderNewOsPhotos) window.renderNewOsPhotos();
                 
                 calculateGUT('new');
             } catch(e) {
@@ -924,9 +920,11 @@
             }
         }
 
-        function previewPhoto(event, imgId, type) {
-            const file = event.target.files[0];
-            if(file) {
+        function previewPhoto(event, type) {
+            const files = event.target.files;
+            if(!files || files.length === 0) return;
+            
+            Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
                     const img = new Image();
@@ -944,28 +942,38 @@
                         
                         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); 
                         
-                        document.getElementById(imgId).src = compressedBase64;
-                        document.getElementById(imgId).classList.remove('hidden');
-                        document.getElementById(`os-photo-${type}`).setAttribute('data-base64', compressedBase64);
+                        if(!appState.newOsPhotos) appState.newOsPhotos = [];
+                        appState.newOsPhotos.push(compressedBase64);
+                        renderNewOsPhotos();
                     }
                     img.src = e.target.result;
                 }; 
                 reader.readAsDataURL(file);
+            });
+            event.target.value = '';
+        }
+
+        function renderNewOsPhotos() {
+            const container = document.getElementById('preview-photos-container');
+            if(!container) return;
+            container.innerHTML = '';
+            (appState.newOsPhotos || []).forEach((photoBase64, idx) => {
+                container.innerHTML += `
+                    <div class="relative group mt-2">
+                        <img src="${photoBase64}" class="h-24 w-full object-cover rounded border border-gray-200 shadow-sm">
+                        <button type="button" onclick="removeNewOsPhoto(${idx})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow hover:bg-red-600 active:scale-95"><i class="fas fa-times text-xs"></i></button>
+                    </div>
+                `;
+            });
+        }
+        
+        function removeNewOsPhoto(idx) {
+            if(appState.newOsPhotos) {
+                appState.newOsPhotos.splice(idx, 1);
+                renderNewOsPhotos();
             }
         }
 
-        async function handleNewOS(e) {
-            e.preventDefault();
-            try {
-                const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-                const newId = `OS-${dateStr}-${String(appState.orders.length + 1).padStart(3, '0')}`;
-                
-                let base64Photo = null;
-                const photoCam = document.getElementById('os-photo-cam');
-                const photoGal = document.getElementById('os-photo-gal');
-                
-                if(photoCam && photoCam.hasAttribute('data-base64')) base64Photo = photoCam.getAttribute('data-base64');
-                else if(photoGal && photoGal.hasAttribute('data-base64')) base64Photo = photoGal.getAttribute('data-base64');
 
                 const newOS = {
                     id: newId,
@@ -973,7 +981,7 @@
                     sector: document.getElementById('os-sector').value,
                     equipment: document.getElementById('os-equipment').value,
                     description: document.getElementById('os-description').value,
-                    photo: base64Photo,
+                    photos: appState.newOsPhotos ? [...appState.newOsPhotos] : [],
                     gut: calculateGUT('new'), 
                     status: "Solicitada",
                     createdAt: new Date().toISOString(), 
@@ -1047,8 +1055,26 @@
             gutBadge.innerText = 'GUT: ' + os.gut.score;
             gutBadge.className = `px-2 py-0.5 rounded text-[10px] font-bold border ${os.gut.score >= 80 ? 'text-danger border-red-200 bg-red-50' : (os.gut.score >= 40 ? 'text-warning border-orange-200 bg-orange-50' : 'text-success border-green-200 bg-green-50')}`;
 
-            if(os.photo) { document.getElementById('detail-photo').src = os.photo; document.getElementById('detail-photo-container').classList.remove('hidden'); }
-            else document.getElementById('detail-photo-container').classList.add('hidden');
+            const photoContainer = document.getElementById('detail-photo-container');
+            const photoGrid = document.getElementById('detail-photo-grid');
+            if (photoGrid && photoContainer) {
+                photoGrid.innerHTML = '';
+                let hasPhotos = false;
+                
+                if(os.photo) {
+                    photoGrid.innerHTML += `<img src="${os.photo}" class="w-full h-32 object-cover rounded border mb-2 cursor-pointer" onclick="window.open('${os.photo}', '_blank')">`;
+                    hasPhotos = true;
+                }
+                if(os.photos && os.photos.length > 0) {
+                    os.photos.forEach(p => {
+                        photoGrid.innerHTML += `<img src="${p}" class="w-full h-32 object-cover rounded border mb-2 cursor-pointer" onclick="window.open('${p}', '_blank')">`;
+                    });
+                    hasPhotos = true;
+                }
+                
+                if(hasPhotos) photoContainer.classList.remove('hidden');
+                else photoContainer.classList.add('hidden');
+            }
 
             const isMaint = appState.currentUser.role === 'maintenance';
             document.getElementById('form-manage-os').classList.toggle('hidden', !isMaint);
@@ -1453,6 +1479,8 @@
         window.renderSectorList = renderSectorList;
         window.calculateGUT = calculateGUT;
         window.previewPhoto = previewPhoto;
+        window.removeNewOsPhoto = removeNewOsPhoto;
+        window.renderNewOsPhotos = renderNewOsPhotos;
         window.handleNewOS = handleNewOS;
         window.globalSearchOS = globalSearchOS;
         window.openOSDetails = openOSDetails;
