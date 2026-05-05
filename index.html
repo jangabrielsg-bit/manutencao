@@ -974,6 +974,12 @@
             }
         }
 
+        async function handleNewOS(e) {
+            e.preventDefault();
+            try {
+                const year = new Date().getFullYear();
+                const num = appState.orders.length + 1;
+                const newId = `OS-${year}${String(num).padStart(4, '0')}`;
 
                 const newOS = {
                     id: newId,
