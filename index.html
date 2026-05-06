@@ -112,27 +112,55 @@
         
         <!-- View: Home -->
         <div id="view-home" class="view-section hidden pb-32">
-            <div class="bg-brand px-6 pb-6 pt-4 rounded-b-3xl mb-6">
-                <div class="flex justify-end mb-2">
-                    <button onclick="openSector('CONCLUIDAS')" class="bg-white text-success font-bold px-3 py-2 rounded-md shadow-md flex items-center gap-2 border border-gray-100 text-sm hover:bg-gray-50 transition active:scale-95">
-                        <div class="bg-success text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            <i class="fas fa-check"></i>
-                        </div>
-                        Ver Concluídas
-                    </button>
+            <!-- Header com Busca -->
+            <div class="bg-brand px-6 pb-8 pt-6 rounded-b-[2rem] shadow-sm mb-6 relative z-10">
+                <h2 class="text-white font-black text-xl mb-4 drop-shadow-sm">Olá, o que você procura?</h2>
+                <div class="relative w-full">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                    <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar OS, equipamento..." class="w-full pl-11 pr-12 py-3.5 bg-white rounded-xl shadow-md border-none focus:ring-2 focus:ring-yellow-500 text-sm outline-none font-medium transition-all">
+                    <button onclick="globalSearchOS()" class="absolute right-1.5 top-1.5 bottom-1.5 bg-dark text-brand px-4 rounded-lg font-bold text-sm shadow hover:bg-gray-800 transition active:scale-95"><i class="fas fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <div class="px-6 max-w-5xl mx-auto">
-                <!-- Busca Global -->
-                <div class="relative w-full mb-6">
-                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar nº da OS (Ex: OS-2026...)" class="w-full pl-10 pr-12 py-3 bg-white rounded-xl shadow-sm border border-gray-200 focus:border-brand focus:ring-1 focus:ring-brand text-sm outline-none uppercase font-medium">
-                    <button onclick="globalSearchOS()" class="absolute right-1.5 top-1.5 bottom-1.5 bg-brand text-dark px-3.5 rounded-lg font-bold text-xs shadow-sm hover:bg-yellow-500 transition active:scale-95"><i class="fas fa-arrow-right"></i></button>
+            <div class="px-6 max-w-5xl mx-auto -mt-10 relative z-20">
+                <!-- Status Rápidos -->
+                <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-3 ml-1 text-gray-500">Visão Geral</h3>
+                <div class="grid grid-cols-2 gap-3 mb-8">
+                    <div onclick="openSector('PENDENTES')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-red-200">
+                        <div class="w-8 h-8 rounded-full bg-red-50 text-danger flex items-center justify-center mb-2"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <h4 class="text-xs text-gray-500 font-bold uppercase">Pendentes</h4>
+                            <span class="text-2xl font-black text-dark" id="dash-pendentes">0</span>
+                        </div>
+                    </div>
+                    
+                    <div onclick="openSector('ANDAMENTO')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-warning">
+                        <div class="w-8 h-8 rounded-full bg-orange-50 text-warning flex items-center justify-center mb-2"><i class="fas fa-tools"></i></div>
+                        <div>
+                            <h4 class="text-xs text-gray-500 font-bold uppercase">Em Andamento</h4>
+                            <span class="text-2xl font-black text-dark" id="dash-andamento">0</span>
+                        </div>
+                    </div>
+                    
+                    <div onclick="openSector('CONCLUIDAS')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-green-200">
+                        <div class="w-8 h-8 rounded-full bg-green-50 text-success flex items-center justify-center mb-2"><i class="fas fa-check-double"></i></div>
+                        <div>
+                            <h4 class="text-xs text-gray-500 font-bold uppercase">Concluídas</h4>
+                            <span class="text-2xl font-black text-dark" id="dash-concluidas">0</span>
+                        </div>
+                    </div>
+
+                    <div onclick="openSector('URGENTES')" id="dash-urgentes-card" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-red-400 hidden">
+                        <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 border border-red-200 flex items-center justify-center mb-2 animate-pulse"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div>
+                            <h4 class="text-xs text-gray-500 font-bold uppercase">Urgentes</h4>
+                            <span class="text-2xl font-black text-dark" id="dash-urgentes">0</span>
+                        </div>
+                    </div>
                 </div>
 
-                <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Selecione o Setor</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="sector-grid">
+                <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Filtrar por Setor</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="sector-grid">
                     <!-- Gerado via JS -->
                 </div>
             </div>
@@ -726,56 +754,68 @@
             if(!grid) return;
             grid.innerHTML = '';
 
+            let totalPendentes = 0;
+            let totalAndamento = 0;
+            let totalConcluidas = 0;
+            let totalUrgentes = 0;
+
+            appState.orders.forEach(o => {
+                if (['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status)) totalPendentes++;
+                else if (['Em Diagnóstico', 'Em Execução'].includes(o.status)) totalAndamento++;
+                else if (o.status === 'Concluída') totalConcluidas++;
+                
+                if (o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada') {
+                    totalUrgentes++;
+                }
+            });
+
+            document.getElementById('dash-pendentes').innerText = totalPendentes;
+            document.getElementById('dash-andamento').innerText = totalAndamento;
+            document.getElementById('dash-concluidas').innerText = totalConcluidas;
+            
+            const urgCard = document.getElementById('dash-urgentes-card');
+            const urgVal = document.getElementById('dash-urgentes');
+            if (urgCard && urgVal) {
+                urgVal.innerText = totalUrgentes;
+                if (totalUrgentes > 0 && appState.currentUser && appState.currentUser.role === 'maintenance') {
+                    urgCard.classList.remove('hidden');
+                } else {
+                    urgCard.classList.add('hidden');
+                }
+            }
+
             appState.sectors.forEach(s => {
                 const pendentes = appState.orders.filter(o => o.sector === s.name && ['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status)).length;
                 const andamento = appState.orders.filter(o => o.sector === s.name && ['Em Diagnóstico', 'Em Execução'].includes(o.status)).length;
-                const resolvidas = appState.orders.filter(o => o.sector === s.name && o.status === 'Concluída').length;
                 
                 let statsHtml = '';
-                if(pendentes === 0 && andamento === 0 && resolvidas === 0) {
-                    statsHtml = `<span class="text-gray-400 italic text-sm font-medium">Livre</span>`;
+                if(pendentes === 0 && andamento === 0) {
+                    statsHtml = `<span class="text-gray-300 text-xs font-bold"><i class="fas fa-check-circle"></i> Livre</span>`;
                 } else {
-                    statsHtml = `<div class="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider">`;
-                    if(pendentes > 0) statsHtml += `<span class="text-danger">${pendentes} Pendente(s)</span>`;
-                    if(andamento > 0) statsHtml += `<span class="text-warning">${andamento} Em Andamento</span>`;
-                    if(resolvidas > 0) statsHtml += `<span class="text-success">${resolvidas} Resolvida(s)</span>`;
+                    statsHtml = `<div class="flex gap-2">`;
+                    if(pendentes > 0) statsHtml += `<span class="flex items-center gap-1 text-[10px] font-bold text-danger bg-red-50 px-2 py-0.5 rounded-full border border-red-100"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span> ${pendentes}</span>`;
+                    if(andamento > 0) statsHtml += `<span class="flex items-center gap-1 text-[10px] font-bold text-warning bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100"><span class="w-1.5 h-1.5 rounded-full bg-warning"></span> ${andamento}</span>`;
                     statsHtml += `</div>`;
                 }
 
                 grid.innerHTML += `
-                    <div class="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition active:scale-95 border border-transparent hover:border-brand flex flex-col justify-between" style="min-height: 120px;" onclick="openSector('${s.name}')">
+                    <div class="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition active:scale-95 border border-gray-100 hover:border-brand flex items-center justify-between" onclick="openSector('${s.name}')">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 shrink-0"><i class="fas fa-list-ul text-sm"></i></div>
-                            <h3 class="font-bold text-dark text-sm uppercase tracking-wide truncate">${s.name}</h3>
+                            <div class="w-8 h-8 rounded bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 shrink-0"><i class="fas fa-building text-xs"></i></div>
+                            <h3 class="font-bold text-dark text-sm tracking-wide truncate max-w-[120px]">${s.name}</h3>
                         </div>
-                        <div class="flex justify-between items-end mt-4">
-                            ${statsHtml}
-                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0 ml-2"><i class="fas fa-arrow-right text-xs"></i></div>
-                        </div>
+                        ${statsHtml}
                     </div>
                 `;
             });
-
-            const total = appState.orders.length;
-            const concluidas = appState.orders.filter(o => o.status === 'Concluída').length;
-            const pct = total === 0 ? 0 : Math.round((concluidas / total) * 100);
-            
-            const progressPct = document.getElementById('progress-percent');
-            const progressBar = document.getElementById('progress-bar');
-            const progressTxt = document.getElementById('progress-text');
-
-            if(progressPct) progressPct.innerText = `${pct}%`;
-            if(progressBar) progressBar.style.width = `${pct}%`;
-            if(progressTxt) progressTxt.innerText = `${concluidas}/${total} OS concluídas`;
 
             if(appState.currentUser && appState.currentUser.role === 'requester') {
                 const b = document.getElementById('badge-my-os');
                 if(b) b.style.display = appState.orders.length > 0 ? 'block' : 'none';
             }
             if(appState.currentUser && appState.currentUser.role === 'maintenance') {
-                const urgentOrders = appState.orders.filter(o => o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada');
                 const bUrgent = document.getElementById('badge-urgent-os');
-                if(bUrgent) bUrgent.style.display = urgentOrders.length > 0 ? 'block' : 'none';
+                if(bUrgent) bUrgent.style.display = totalUrgentes > 0 ? 'block' : 'none';
             }
         }
 
@@ -803,6 +843,8 @@
             const isMyHistory = appState.currentListSector === null;
             const isConcluidas = appState.currentListSector === 'CONCLUIDAS';
             const isUrgentes = appState.currentListSector === 'URGENTES';
+            const isPendentes = appState.currentListSector === 'PENDENTES';
+            const isAndamento = appState.currentListSector === 'ANDAMENTO';
             
             const filtersBlock = document.getElementById('concluidas-filters');
             if(isConcluidas) {
@@ -814,12 +856,12 @@
                     const unicos = [...new Set(appState.orders.filter(o => o.status === 'Concluída').map(o => o.sector))];
                     unicos.forEach(s => secSelect.innerHTML += `<option value="${s}">${s}</option>`);
                 }
-            } else if(isUrgentes) {
-                filtersBlock.classList.add('hidden');
-                document.getElementById('list-sector-title').innerText = "OS Urgentes";
             } else {
                 filtersBlock.classList.add('hidden');
-                document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
+                if (isUrgentes) document.getElementById('list-sector-title').innerText = "OS Urgentes";
+                else if (isPendentes) document.getElementById('list-sector-title').innerText = "OS Pendentes";
+                else if (isAndamento) document.getElementById('list-sector-title').innerText = "Em Andamento";
+                else document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
             }
 
             let filtered = [...appState.orders];
@@ -833,20 +875,29 @@
                 if(fDate) {
                     filtered = filtered.filter(o => o.createdAt.startsWith(fDate));
                 }
-                
-                filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             } else if(isUrgentes) {
                 filtered = filtered.filter(o => o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada');
                 filtered.sort((a,b) => b.gut.score - a.gut.score); // order by score desc
+            } else if(isPendentes) {
+                filtered = filtered.filter(o => ['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status));
+            } else if(isAndamento) {
+                filtered = filtered.filter(o => ['Em Diagnóstico', 'Em Execução'].includes(o.status));
             } else if(!isMyHistory) {
                 filtered = filtered.filter(o => o.sector === appState.currentListSector && o.status !== 'Concluída');
-                filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-            } else {
+            }
+
+            // A ordenação padrão (mais recente primeiro) se não for urgentes que usa score
+            if (!isUrgentes) {
                 filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
             }
 
             if(term) {
-                filtered = filtered.filter(o => o.id.toLowerCase().includes(term) || o.description.toLowerCase().includes(term));
+                filtered = filtered.filter(o => 
+                    o.id.toLowerCase().includes(term) || 
+                    o.description.toLowerCase().includes(term) ||
+                    (o.equipment && o.equipment.toLowerCase().includes(term)) ||
+                    (o.requester && o.requester.toLowerCase().includes(term))
+                );
             }
 
             container.innerHTML = '';
@@ -1023,15 +1074,28 @@
 
         // --- GESTÃO DE OS ---
         function globalSearchOS() {
-            const query = document.getElementById('global-search-os').value.trim().toUpperCase();
+            const query = document.getElementById('global-search-os').value.trim();
             if(!query) return;
 
-            const os = appState.orders.find(o => o.id.toUpperCase().includes(query));
-            if(os) {
-                openOSDetails(os.id);
+            const exactMatch = appState.orders.find(o => o.id.toUpperCase() === query.toUpperCase());
+            
+            if(exactMatch) {
+                openOSDetails(exactMatch.id);
                 document.getElementById('global-search-os').value = '';
             } else {
-                showToast(`Nenhuma OS encontrada para '${query}'.`);
+                // Navega para a lista geral e aplica o filtro
+                appState.currentListSector = null; // Histórico Geral
+                navigate('sector-os');
+                
+                // Delay para a UI atualizar e preencher o input da tela de lista
+                setTimeout(() => {
+                    const searchInput = document.getElementById('search-os');
+                    if (searchInput) {
+                        searchInput.value = query;
+                        renderSectorList(); // Força o filtro
+                    }
+                    document.getElementById('global-search-os').value = '';
+                }, 100);
             }
         }
 
