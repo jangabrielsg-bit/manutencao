@@ -124,7 +124,6 @@
 
             <div class="px-6 max-w-5xl mx-auto -mt-10 relative z-20">
                 <!-- Status Rápidos -->
-                <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-3 ml-1 text-gray-500">Visão Geral</h3>
                 <div class="grid grid-cols-2 gap-3 mb-8">
                     <div onclick="openSector('PENDENTES')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-red-200">
                         <div class="w-8 h-8 rounded-full bg-red-50 text-danger flex items-center justify-center mb-2"><i class="fas fa-clock"></i></div>
@@ -482,6 +481,12 @@
 
     </main>
 
+    <!-- Photo Modal -->
+    <div id="photo-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-4 transition-opacity duration-300 opacity-0" onclick="closePhotoModal()">
+        <button onclick="closePhotoModal()" class="absolute top-6 right-6 text-white text-4xl hover:text-gray-300 transition w-12 h-12 flex items-center justify-center rounded-full bg-black/50">&times;</button>
+        <img id="photo-modal-img" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()">
+    </div>
+
     <!-- Toast de Notificação -->
     <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 -translate-y-10 opacity-0 bg-dark text-white px-6 py-3 rounded-full shadow-lg transition-all duration-300 z-50 text-sm font-bold flex items-center gap-2 pointer-events-none">
         <i class="fas fa-bell text-brand"></i> <span id="toast-msg">Mensagem</span>
@@ -600,6 +605,26 @@
         initPWA();
 
         // Funções de UI
+        function openPhotoModal(src) {
+            const modal = document.getElementById('photo-modal');
+            const img = document.getElementById('photo-modal-img');
+            img.src = src;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.classList.add('opacity-100');
+            }, 10);
+        }
+
+        function closePhotoModal() {
+            const modal = document.getElementById('photo-modal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
         function playNotificationSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1132,12 +1157,12 @@
                 let hasPhotos = false;
                 
                 if(os.photo) {
-                    photoGrid.innerHTML += `<img src="${os.photo}" class="w-full h-32 object-cover rounded border mb-2 cursor-pointer" onclick="window.open('${os.photo}', '_blank')">`;
+                    photoGrid.innerHTML += `<img src="${os.photo}" class="w-full h-32 object-cover rounded border mb-2 cursor-pointer" onclick="openPhotoModal('${os.photo}')">`;
                     hasPhotos = true;
                 }
                 if(os.photos && os.photos.length > 0) {
                     os.photos.forEach(p => {
-                        photoGrid.innerHTML += `<img src="${p}" class="w-full h-32 object-cover rounded border mb-2 cursor-pointer" onclick="window.open('${p}', '_blank')">`;
+                        photoGrid.innerHTML += `<img src="${p}" class="w-full h-32 object-cover rounded border mb-2 cursor-pointer" onclick="openPhotoModal('${p}')">`;
                     });
                     hasPhotos = true;
                 }
@@ -1575,6 +1600,8 @@
         window.installApp = installApp;
         window.deleteOS = deleteOS;
 
+        window.openPhotoModal = openPhotoModal;
+        window.closePhotoModal = closePhotoModal;
     </script>
 </body>
 </html>
