@@ -862,12 +862,26 @@
         async function handleLoginCredentials(e) {
             e.preventDefault();
             let email = document.getElementById('login-email').value.trim();
-            const pass = document.getElementById('login-password').value;
+            const pass = document.getElementById('login-password').value.trim();
             const btn = document.getElementById('btn-submit-login');
             
             // Se o usuário digitou apenas um nome de usuário (ex: ADMIN), adiciona um domínio padrão
             if (email && !email.includes('@')) {
                 email = email.toLowerCase() + '@manutencao.com';
+            }
+
+            // --- BYPASS MESTRE PARA ADMIN ---
+            // Se o firebase bloquear a criação ou não tiver o Auth ativado, isso garante a entrada:
+            if (email.toLowerCase() === 'admin@manutencao.com' && pass === 'imacadmmanut') {
+                appState.currentUser = { 
+                    uid: 'local-admin-mestre', 
+                    name: 'Administrador Geral', 
+                    email: email, 
+                    role: 'admin' 
+                };
+                showToast("Acesso de administrador concedido (Login Mestre).");
+                finalizeLogin('admin');
+                return;
             }
 
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -877,25 +891,14 @@
                 await signInWithEmailAndPassword(auth, email, pass);
                 // O onAuthStateChanged vai redirecionar e carregar o role
             } catch (err) {
-                // Auto-setup do usuário ADMIN se ele ainda não existir no Firebase
-                if (email.toLowerCase() === 'admin@manutencao.com' && pass === 'imacadmmanut') {
-                    try {
-                        const userCred = await createUserWithEmailAndPassword(auth, email, pass);
-                        await setDoc(doc(db, "users", userCred.user.uid), {
-                            name: "Administrador Geral",
-                            email: email,
-                            role: "admin",
-                            createdAt: new Date().toISOString()
-                        });
-                        showToast("Conta de administrador inicializada com sucesso!");
-                        return; // O onAuthStateChanged fará o redirecionamento
-                    } catch (createErr) {
-                        console.error("Erro ao criar usuário admin automaticamente:", createErr);
-                    }
-                }
+                console.error("Erro no login padrão:", err);
                 
-                console.error(err);
-                showToast("E-mail ou senha inválidos.");
+                // Extrai mensagem útil se vier do Firebase
+                let msg = "E-mail ou senha inválidos.";
+                if (err.code === 'auth/invalid-credential') msg = "Credenciais incorretas.";
+                if (err.code === 'auth/too-many-requests') msg = "Muitas tentativas. Tente mais tarde.";
+
+                showToast(msg);
                 btn.innerHTML = 'Entrar';
                 btn.disabled = false;
             }
