@@ -1022,11 +1022,21 @@
             document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaintOrAdmin ? 'flex' : 'none');
             
             if (role === 'admin') {
-                // Admin vê o menu settings
+                // Admin vê o menu settings e o analytics
                 document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
+                const analyticsBtn = document.getElementById('btn-nav-analytics');
+                if (analyticsBtn) {
+                    analyticsBtn.classList.remove('hidden');
+                    analyticsBtn.style.display = 'flex';
+                }
             } else if (role === 'maintenance') {
-                // Manutenção não vê o menu settings
+                // Manutenção não vê o menu settings nem o analytics
                 document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'none';
+                const analyticsBtn = document.getElementById('btn-nav-analytics');
+                if (analyticsBtn) {
+                    analyticsBtn.classList.add('hidden');
+                    analyticsBtn.style.display = 'none';
+                }
             }
 
             // Reseta o botão de login se estava carregando
