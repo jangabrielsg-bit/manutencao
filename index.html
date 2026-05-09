@@ -588,7 +588,7 @@
     <script type="module">
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Configuração do Firebase com suporte tanto ao ambiente atual quanto ao seu domínio
         // =========================================================================
@@ -906,31 +906,39 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             btn.disabled = true;
 
-            // --- LOGIN CUSTOMIZADO VIA FIRESTORE ---
-            // Evita o uso do Firebase Auth Email/Password se ele estiver desativado no console
+            // Tenta o Login Nativo do Firebase Auth (Email/Senha ativados)
             try {
-                window.isCustomLogin = true;
-                await signInAnonymously(auth); // Precisamos estar anônimos para ter permissão de ler a coleção 'users'
-                setupDatabaseListeners(); // Reconecta os listeners!
+                await signInWithEmailAndPassword(auth, email, pass);
+                // Se der certo, onAuthStateChanged fará o resto
+                return;
+            } catch (authErr) {
+                console.warn("Login via Firebase Auth falhou, tentando fallback local...", authErr.message);
                 
-                const q = query(collection(db, "users"), where("email", "==", email.toLowerCase()), where("pass", "==", pass));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    const userDoc = querySnapshot.docs[0];
-                    const userData = userDoc.data();
+                // --- LOGIN CUSTOMIZADO VIA FIRESTORE (FALLBACK) ---
+                try {
+                    window.isCustomLogin = true;
+                    await signInAnonymously(auth); // Pega token anônimo
+                    setupDatabaseListeners(); // Reconecta
                     
-                    appState.currentUser = { uid: userDoc.id, ...userData };
-                    finalizeLogin(userData.role);
-                } else {
-                    showToast("E-mail ou senha inválidos.");
+                    const q = query(collection(db, "users"), where("email", "==", email.toLowerCase()), where("pass", "==", pass));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        const userDoc = querySnapshot.docs[0];
+                        const userData = userDoc.data();
+                        
+                        appState.currentUser = { uid: userDoc.id, ...userData };
+                        finalizeLogin(userData.role);
+                    } else {
+                        showToast("E-mail ou senha inválidos.");
+                    }
+                } catch (err) {
+                    console.error("Erro no login customizado:", err);
+                    showToast("Erro ao processar login.");
+                } finally {
+                    btn.innerHTML = 'Entrar';
+                    btn.disabled = false;
                 }
-            } catch (err) {
-                console.error("Erro no login customizado:", err);
-                showToast("Erro ao processar login.");
-            } finally {
-                btn.innerHTML = 'Entrar';
-                btn.disabled = false;
             }
         }
 
@@ -2017,9 +2025,17 @@
             const role = document.getElementById('new-user-role').value;
 
             try {
-                // Salva o usuário diretamente no Firestore (Bypass do erro operation-not-allowed do Auth)
-                const newUid = "usr_" + Date.now() + Math.floor(Math.random() * 1000);
-                
+                // Instancia app secundário para não deslogar o admin atual
+                const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+                const secondaryAuth = getAuth(secondaryApp);
+
+                const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                const newUid = userCred.user.uid;
+
+                // Deleta a instância secundária
+                await deleteApp(secondaryApp);
+
+                // Salva o usuário diretamente no Firestore
                 await setDoc(doc(db, "users", newUid), {
                     name, email, pass, role, createdAt: new Date().toISOString()
                 });
