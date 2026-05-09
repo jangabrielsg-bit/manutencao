@@ -587,8 +587,8 @@
     <!-- Módulo do Firebase e Scripts da Aplicação -->
     <script type="module">
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Configuração do Firebase com suporte tanto ao ambiente atual quanto ao seu domínio
         // =========================================================================
@@ -630,7 +630,7 @@
         // --- INICIALIZAÇÃO DE DADOS E AUTENTICAÇÃO ---
         const initAuthAndData = async () => {
             onAuthStateChanged(auth, async (user) => {
-                if (window.isAdminBypass) return; // Ignora o listener de auth se estiver no modo bypass
+                if (window.isCustomLogin) return; // Ignora o listener se foi login customizado/bypass
 
                 if (user) {
                     if (user.isAnonymous) {
@@ -878,16 +878,16 @@
             }
 
             // --- BYPASS MESTRE PARA ADMIN ---
-            // Se o firebase bloquear a criação ou não tiver o Auth ativado, isso garante a entrada:
             if (email.toLowerCase() === 'admin@manutencao.com' && pass === 'imacadmmanut') {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 btn.disabled = true;
                 
                 try {
-                    window.isAdminBypass = true;
-                    await signInAnonymously(auth); // Pega token anônimo para ter acesso de leitura no Firebase
+                    window.isCustomLogin = true;
+                    await signInAnonymously(auth); // Pega token anônimo para permissão de leitura no Firebase
+                    setupDatabaseListeners(); // Reconecta ao banco agora que temos token! (Garante que os dados apareçam)
                 } catch(e) {
-                    console.warn("Bypass anônimo falhou, tentando leitura offline:", e);
+                    console.warn("Bypass anônimo falhou:", e);
                 }
 
                 appState.currentUser = { 
@@ -896,7 +896,7 @@
                     email: email, 
                     role: 'admin' 
                 };
-                showToast("Acesso de administrador concedido (Login Mestre).");
+                showToast("Acesso de administrador concedido.");
                 finalizeLogin('admin');
                 btn.innerHTML = 'Entrar';
                 btn.disabled = false;
@@ -906,18 +906,29 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             btn.disabled = true;
 
+            // --- LOGIN CUSTOMIZADO VIA FIRESTORE ---
+            // Evita o uso do Firebase Auth Email/Password se ele estiver desativado no console
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
-                // O onAuthStateChanged vai redirecionar e carregar o role
-            } catch (err) {
-                console.error("Erro no login padrão:", err);
+                window.isCustomLogin = true;
+                await signInAnonymously(auth); // Precisamos estar anônimos para ter permissão de ler a coleção 'users'
+                setupDatabaseListeners(); // Reconecta os listeners!
                 
-                // Extrai mensagem útil se vier do Firebase
-                let msg = "E-mail ou senha inválidos.";
-                if (err.code === 'auth/invalid-credential') msg = "Credenciais incorretas.";
-                if (err.code === 'auth/too-many-requests') msg = "Muitas tentativas. Tente mais tarde.";
-
-                showToast(msg);
+                const q = query(collection(db, "users"), where("email", "==", email.toLowerCase()), where("pass", "==", pass));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    const userData = userDoc.data();
+                    
+                    appState.currentUser = { uid: userDoc.id, ...userData };
+                    finalizeLogin(userData.role);
+                } else {
+                    showToast("E-mail ou senha inválidos.");
+                }
+            } catch (err) {
+                console.error("Erro no login customizado:", err);
+                showToast("Erro ao processar login.");
+            } finally {
                 btn.innerHTML = 'Entrar';
                 btn.disabled = false;
             }
@@ -2001,24 +2012,16 @@
             btn.disabled = true;
 
             const name = document.getElementById('new-user-name').value.trim();
-            const email = document.getElementById('new-user-email').value.trim();
+            const email = document.getElementById('new-user-email').value.trim().toLowerCase();
             const pass = document.getElementById('new-user-pass').value;
             const role = document.getElementById('new-user-role').value;
 
             try {
-                // Instancia app secundário para não deslogar o admin
-                const secondaryApp = initializeApp(firebaseConfig, "Secondary");
-                const secondaryAuth = getAuth(secondaryApp);
-
-                const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-                const newUid = userCred.user.uid;
-
-                // Deleta a instância secundária
-                await deleteApp(secondaryApp);
-
-                // Salva o perfil na coleção 'users' usando o banco principal
+                // Salva o usuário diretamente no Firestore (Bypass do erro operation-not-allowed do Auth)
+                const newUid = "usr_" + Date.now() + Math.floor(Math.random() * 1000);
+                
                 await setDoc(doc(db, "users", newUid), {
-                    name, email, role, createdAt: new Date().toISOString()
+                    name, email, pass, role, createdAt: new Date().toISOString()
                 });
 
                 showToast("Usuário criado com sucesso!");
