@@ -644,8 +644,36 @@
 
         // --- INICIALIZAÇÃO DE DADOS E AUTENTICAÇÃO ---
         const initAuthAndData = async () => {
+            // Recupera a sessão salva para manter o usuário logado eternamente
+            const savedSession = localStorage.getItem('manut_session');
+            if (savedSession) {
+                try {
+                    appState.currentUser = JSON.parse(savedSession);
+                    window.isCustomLogin = true; // Ignora eventos do Firebase Auth que poderiam sobrescrever
+                    
+                    // Renderiza a tela correta imediatamente, melhorando o tempo de carregamento
+                    document.getElementById('view-login').classList.add('hidden');
+                    document.getElementById('main-header').classList.remove('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    
+                    const role = appState.currentUser.role;
+                    const isMaintOrAdmin = role === 'maintenance' || role === 'admin';
+                    document.querySelectorAll('.req-action').forEach(el => el.style.display = isMaintOrAdmin ? 'none' : 'flex');
+                    document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaintOrAdmin ? 'flex' : 'none');
+                    if (role === 'admin') {
+                        document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
+                    } else if (role === 'maintenance') {
+                        document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'none';
+                    }
+                    navigate('home');
+                } catch (e) {
+                    console.error("Erro ao carregar sessão salva:", e);
+                    localStorage.removeItem('manut_session');
+                }
+            }
+
             onAuthStateChanged(auth, async (user) => {
-                if (window.isCustomLogin) return; // Ignora o listener se foi login customizado/bypass
+                if (window.isCustomLogin) return; // Ignora o listener se foi login customizado/bypass ou se carregou do localStorage
 
                 if (user) {
                     if (user.isAnonymous) {
@@ -958,6 +986,11 @@
         }
 
         function finalizeLogin(role) {
+            // Salva a sessão localmente para manter logado eternamente
+            if (appState.currentUser) {
+                localStorage.setItem('manut_session', JSON.stringify(appState.currentUser));
+            }
+
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('main-header').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
@@ -985,6 +1018,7 @@
         async function logout() {
             try {
                 window.isCustomLogin = false; // Reset de segurança
+                localStorage.removeItem('manut_session'); // Remove a sessão eterna
                 await signOut(auth);
             } catch (err) {
                 console.error(err);
