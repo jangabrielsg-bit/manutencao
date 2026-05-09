@@ -1415,11 +1415,17 @@
                 card.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-brand cursor-pointer shadow-sm active:scale-[0.98] transition";
                 card.onclick = () => openOSDetails(os.id);
                 
+                let assignedHtml = '';
+                if (os.assignedTo) {
+                    assignedHtml = `<div class="mt-1 text-[10px] font-bold text-gray-500"><i class="fas fa-user text-[9px] mr-1"></i>${os.assignedTo}</div>`;
+                }
+
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             <span class="text-brand font-black text-sm">${os.id}</span>
                             <div class="text-[10px] text-gray-500 font-bold mt-0.5"><i class="fas fa-building text-[9px] mr-1"></i>${os.sector}</div>
+                            ${assignedHtml}
                         </div>
                         <span class="px-2 py-0.5 text-[10px] font-bold rounded border uppercase ${getStatusStyles(os.status)}">${os.status}</span>
                     </div>
