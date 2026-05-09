@@ -148,10 +148,19 @@
                     <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar OS, equipamento..." class="w-full pl-11 pr-12 py-3.5 bg-white rounded-xl shadow-md border-none focus:ring-2 focus:ring-yellow-500 text-sm outline-none font-medium transition-all">
                     <button onclick="globalSearchOS()" class="absolute right-1.5 top-1.5 bottom-1.5 bg-dark text-brand px-4 rounded-lg font-bold text-sm shadow hover:bg-gray-800 transition active:scale-95"><i class="fas fa-arrow-right"></i></button>
                 </div>
+                
+                <!-- MENU DE ABAS DA HOME -->
+                <div class="flex gap-2 mt-6 pb-2">
+                    <button id="btn-tab-dashboard" onclick="switchHomeTab('dashboard')" class="flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm">Resumo Geral</button>
+                    <button id="btn-tab-sectors" onclick="switchHomeTab('sectors')" class="flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm">Setores</button>
+                </div>
             </div>
 
-            <div class="px-6 max-w-5xl mx-auto -mt-10 relative z-20">
-                <!-- Status Rápidos -->
+            <div class="px-6 max-w-5xl mx-auto -mt-6 relative z-20">
+                
+                <!-- ABA 1: RESUMO -->
+                <div id="home-tab-dashboard">
+                    <!-- Status Rápidos -->
                 <div class="grid grid-cols-2 gap-3 mb-8">
                     <div onclick="openSector('PENDENTES')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-red-200">
                         <div class="w-8 h-8 rounded-full bg-red-50 text-danger flex items-center justify-center mb-2"><i class="fas fa-clock"></i></div>
@@ -208,10 +217,16 @@
                     </div>
                 </div>
 
-                <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Filtrar por Setor</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="sector-grid">
-                    <!-- Gerado via JS -->
                 </div>
+
+                <!-- ABA 2: SETORES -->
+                <div id="home-tab-sectors" class="hidden bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 mt-2">
+                    <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Filtrar por Setor</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="sector-grid">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -969,9 +984,13 @@
 
         async function logout() {
             try {
+                window.isCustomLogin = false; // Reset de segurança
                 await signOut(auth);
             } catch (err) {
                 console.error(err);
+            } finally {
+                appState.currentUser = null;
+                logoutUI(); // Força atualização de UI em casos offline ou bypass
             }
         }
 
@@ -1013,6 +1032,23 @@
         }
 
         // --- HOME E SETORES ---
+        function switchHomeTab(tab) {
+            const btnActive = "flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm";
+            const btnInactive = "flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm";
+            
+            if(tab === 'dashboard') {
+                document.getElementById('home-tab-dashboard').classList.remove('hidden');
+                document.getElementById('home-tab-sectors').classList.add('hidden');
+                document.getElementById('btn-tab-dashboard').className = btnActive;
+                document.getElementById('btn-tab-sectors').className = btnInactive;
+            } else {
+                document.getElementById('home-tab-dashboard').classList.add('hidden');
+                document.getElementById('home-tab-sectors').classList.remove('hidden');
+                document.getElementById('btn-tab-dashboard').className = btnInactive;
+                document.getElementById('btn-tab-sectors').className = btnActive;
+            }
+        }
+
         function renderHome() {
             const grid = document.getElementById('sector-grid');
             if(!grid) return;
@@ -1086,12 +1122,14 @@
                 }
 
                 grid.innerHTML += `
-                    <div class="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition active:scale-95 border border-gray-100 hover:border-brand flex items-center justify-between" onclick="openSector('${s.name}')">
-                        <div class="flex items-center gap-3">
+                    <div class="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition active:scale-95 border border-gray-100 hover:border-brand flex items-center justify-between gap-3" onclick="openSector('${s.name}')">
+                        <div class="flex items-center gap-3 flex-1">
                             <div class="w-8 h-8 rounded bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 shrink-0"><i class="fas fa-building text-xs"></i></div>
-                            <h3 class="font-bold text-dark text-sm tracking-wide truncate max-w-[120px]">${s.name}</h3>
+                            <h3 class="font-bold text-dark text-sm tracking-wide break-words whitespace-normal leading-tight">${s.name}</h3>
                         </div>
-                        ${statsHtml}
+                        <div class="shrink-0 flex items-center">
+                            ${statsHtml}
+                        </div>
                     </div>
                 `;
             });
@@ -2056,11 +2094,12 @@
             if (!ulUsers) return;
             ulUsers.innerHTML = '';
             (appState.registeredUsers || []).forEach(u => {
+                const roleLabel = u.role === 'maintenance' ? 'Manutenção' : (u.role === 'admin' ? 'Admin' : u.role);
                 ulUsers.innerHTML += `
                     <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                         <div>
                             <div class="font-medium text-dark">${u.name}</div>
-                            <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${u.role}</span></div>
+                            <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${roleLabel}</span></div>
                         </div>
                     </li>
                 `;
@@ -2075,6 +2114,7 @@
         window.handleLoginCredentials = handleLoginCredentials;
         window.logout = logout;
         window.navigate = navigate;
+        window.switchHomeTab = switchHomeTab;
         window.openSector = openSector;
         window.openUrgentOS = openUrgentOS;
         window.openMyActivities = openMyActivities;
