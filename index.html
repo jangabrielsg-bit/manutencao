@@ -551,14 +551,7 @@
                     <ul id="list-settings-sectors" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
                 </div>
 
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 class="font-bold text-sm mb-3 text-dark">Equipe de Manutenção</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input type="text" id="new-collab-input" placeholder="Novo colaborador..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
-                        <button onclick="addCollaborator()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
-                    </div>
-                    <ul id="list-settings-collaborators" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
-                </div>
+
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="font-bold text-sm mb-3 text-dark">Opções de Status da OS</h3>
@@ -629,6 +622,7 @@
             tempItems: [],
             newOsPhotos: [],
             resolutionPhotos: [],
+            registeredUsers: [],
             currentListSector: null
         };
         let currentViewId = 'login';
@@ -636,6 +630,8 @@
         // --- INICIALIZAÇÃO DE DADOS E AUTENTICAÇÃO ---
         const initAuthAndData = async () => {
             onAuthStateChanged(auth, async (user) => {
+                if (window.isAdminBypass) return; // Ignora o listener de auth se estiver no modo bypass
+
                 if (user) {
                     if (user.isAnonymous) {
                         appState.currentUser = { role: 'requester', uid: user.uid, name: 'Anônimo' };
@@ -711,6 +707,17 @@
                 if(currentViewId === 'home') renderHome();
                 if(currentViewId === 'sector-os') renderSectorList();
             }, (err) => console.error("Orders Snap Error:", err));
+
+            // Carrega os usuários para popular o dropdown de técnicos (se tiver permissão)
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                appState.registeredUsers = snapshot.docs.map(d => d.data());
+                // Se estiver na tela de configurações e for admin, atualiza a lista de usuários
+                if (currentViewId === 'settings' && appState.currentUser && appState.currentUser.role === 'admin') {
+                    renderUsersSettings();
+                }
+            }, (err) => {
+                console.warn("Erro ao ler users (Pode ser esperado se for solicitante anônimo)", err.message);
+            });
         }
 
         // Inicia a aplicação chamando a função
@@ -873,6 +880,16 @@
             // --- BYPASS MESTRE PARA ADMIN ---
             // Se o firebase bloquear a criação ou não tiver o Auth ativado, isso garante a entrada:
             if (email.toLowerCase() === 'admin@manutencao.com' && pass === 'imacadmmanut') {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                btn.disabled = true;
+                
+                try {
+                    window.isAdminBypass = true;
+                    await signInAnonymously(auth); // Pega token anônimo para ter acesso de leitura no Firebase
+                } catch(e) {
+                    console.warn("Bypass anônimo falhou, tentando leitura offline:", e);
+                }
+
                 appState.currentUser = { 
                     uid: 'local-admin-mestre', 
                     name: 'Administrador Geral', 
@@ -881,6 +898,8 @@
                 };
                 showToast("Acesso de administrador concedido (Login Mestre).");
                 finalizeLogin('admin');
+                btn.innerHTML = 'Entrar';
+                btn.disabled = false;
                 return;
             }
 
@@ -1521,7 +1540,17 @@
 
                 const assignSelect = document.getElementById('manage-assigned');
                 assignSelect.innerHTML = '<option value="">Nenhum</option>';
-                appState.collaborators.forEach(c => assignSelect.innerHTML += `<option value="${c}" ${os.assignedTo === c ? 'selected' : ''}>${c}</option>`);
+                // Busca dinamicamente os usuários com role 'maintenance'
+                const maintUsers = (appState.registeredUsers || [])
+                    .filter(u => u.role === 'maintenance')
+                    .map(u => u.name);
+                
+                // Se a OS já tem alguém atribuído que não está mais na lista ou foi excluido, adiciona-o para não quebrar a UI
+                if (os.assignedTo && !maintUsers.includes(os.assignedTo)) {
+                    maintUsers.unshift(os.assignedTo);
+                }
+
+                maintUsers.forEach(c => assignSelect.innerHTML += `<option value="${c}" ${os.assignedTo === c ? 'selected' : ''}>${c}</option>`);
 
                 appState.tempItems = [...(os.itemsUsed || [])];
                 renderManageItems();
@@ -1717,7 +1746,7 @@
         function renderSettings() {
             // Só ouve os usuários se for admin e estiver na tela de configurações
             if (appState.currentUser && appState.currentUser.role === 'admin') {
-                listenToUsers();
+                renderUsersSettings();
             }
 
             const ulSectors = document.getElementById('list-settings-sectors');
@@ -1992,14 +2021,6 @@
                     name, email, role, createdAt: new Date().toISOString()
                 });
 
-                // Se for manutenção, garante que o nome dele esteja na lista de colaboradores do setor
-                if (role === 'maintenance') {
-                    if (!appState.collaborators.includes(name)) {
-                        const newCollabs = [...appState.collaborators, name];
-                        await setDoc(getSettingsDoc(), { collaborators: newCollabs }, { merge: true });
-                    }
-                }
-
                 showToast("Usuário criado com sucesso!");
                 document.getElementById('form-new-user').reset();
             } catch (err) {
@@ -2011,27 +2032,19 @@
             }
         }
 
-        // Listener para usuários (apenas para Admin ver a lista)
-        let usersUnsubscribe = null;
-        function listenToUsers() {
-            if (usersUnsubscribe) return; // Já está escutando
-            usersUnsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
-                const ulUsers = document.getElementById('list-settings-users');
-                if (!ulUsers) return;
-                ulUsers.innerHTML = '';
-                snapshot.forEach(docSnap => {
-                    const u = docSnap.data();
-                    ulUsers.innerHTML += `
-                        <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
-                            <div>
-                                <div class="font-medium text-dark">${u.name}</div>
-                                <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${u.role}</span></div>
-                            </div>
-                        </li>
-                    `;
-                });
-            }, (err) => {
-                console.error("Erro ao ler usuários", err);
+        function renderUsersSettings() {
+            const ulUsers = document.getElementById('list-settings-users');
+            if (!ulUsers) return;
+            ulUsers.innerHTML = '';
+            (appState.registeredUsers || []).forEach(u => {
+                ulUsers.innerHTML += `
+                    <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
+                        <div>
+                            <div class="font-medium text-dark">${u.name}</div>
+                            <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${u.role}</span></div>
+                        </div>
+                    </li>
+                `;
             });
         }
 
