@@ -62,10 +62,10 @@
             </div>
             
             <h1 class="text-2xl font-bold mb-2 text-dark">Gestão de Manutenção</h1>
-            <p class="text-gray-500 text-sm mb-10 text-center">Selecione seu perfil de acesso</p>
+            <p class="text-gray-500 text-sm mb-6 text-center">Selecione seu perfil de acesso</p>
 
-            <div class="w-full space-y-4">
-                <button onclick="login('requester')" class="w-full bg-white border border-gray-200 hover:border-brand p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
+            <div id="login-options" class="w-full space-y-4">
+                <button onclick="loginAnonymous()" class="w-full bg-white border border-gray-200 hover:border-brand p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
                     <div class="w-10 h-10 rounded bg-gray-100 text-brand flex items-center justify-center text-xl"><i class="fas fa-user"></i></div>
                     <div class="text-left">
                         <h3 class="font-bold text-dark text-sm">Sou Solicitante</h3>
@@ -73,14 +73,42 @@
                     </div>
                 </button>
 
-                <button onclick="login('maintenance')" class="w-full bg-dark border border-gray-800 p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
+                <button onclick="showLoginForm('maintenance')" class="w-full bg-dark border border-gray-800 p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
                     <div class="w-10 h-10 rounded bg-gray-700 text-brand flex items-center justify-center text-xl"><i class="fas fa-wrench"></i></div>
                     <div class="text-left">
-                        <h3 class="font-bold text-white text-sm">Manutenção</h3>
-                        <p class="text-xs text-gray-400">Diagnósticos e gestão</p>
+                        <h3 class="font-bold text-white text-sm">Equipe de Manutenção</h3>
+                        <p class="text-xs text-gray-400">Atendimento de ocorrências</p>
+                    </div>
+                </button>
+
+                <button onclick="showLoginForm('admin')" class="w-full bg-gray-200 border border-gray-300 hover:border-gray-400 p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
+                    <div class="w-10 h-10 rounded bg-gray-300 text-gray-700 flex items-center justify-center text-xl"><i class="fas fa-shield-alt"></i></div>
+                    <div class="text-left">
+                        <h3 class="font-bold text-dark text-sm">Administrador</h3>
+                        <p class="text-xs text-gray-500">Gestão completa do sistema</p>
                     </div>
                 </button>
             </div>
+
+            <!-- Formulário de Login (Email e Senha) -->
+            <form id="form-login-credentials" onsubmit="handleLoginCredentials(event)" class="w-full space-y-4 hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 id="login-title" class="font-bold text-dark text-lg">Acesso</h3>
+                    <button type="button" onclick="hideLoginForm()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                </div>
+                <input type="hidden" id="login-role-intent">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail ou Usuário</label>
+                    <input type="text" id="login-email" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm" autocapitalize="none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Senha (ou PIN)</label>
+                    <input type="password" id="login-password" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm">
+                </div>
+                <button type="submit" id="btn-submit-login" class="w-full py-3 font-bold text-brand bg-dark rounded-xl shadow active:scale-95 transition mt-2 text-sm border border-gray-800 flex justify-center items-center">
+                    Entrar
+                </button>
+            </form>
         </div>
     </div>
 
@@ -154,6 +182,28 @@
                         <div>
                             <h4 class="text-xs text-gray-500 font-bold uppercase">Urgentes</h4>
                             <span class="text-2xl font-black text-dark" id="dash-urgentes">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel Manutenção -->
+                <div id="maint-quick-actions" class="mb-8 hidden">
+                    <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Gestão de Atividades</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div onclick="openMyActivities()" class="bg-brand p-4 rounded-2xl shadow-sm border border-yellow-500 flex flex-col justify-between cursor-pointer active:scale-95 transition">
+                            <div class="w-8 h-8 rounded-full bg-white/20 text-dark flex items-center justify-center mb-2"><i class="fas fa-user-tag"></i></div>
+                            <div>
+                                <h4 class="text-xs text-dark font-bold uppercase opacity-80">Minhas Atividades</h4>
+                                <span class="text-2xl font-black text-dark" id="dash-my-tasks">0</span>
+                            </div>
+                        </div>
+                        
+                        <div onclick="openFreeActivities()" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between cursor-pointer active:scale-95 transition hover:border-brand">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center mb-2"><i class="fas fa-inbox"></i></div>
+                            <div>
+                                <h4 class="text-xs text-gray-500 font-bold uppercase">Atividades Livres</h4>
+                                <span class="text-2xl font-black text-dark" id="dash-free-tasks">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -262,7 +312,10 @@
         <div id="view-os-details" class="view-section hidden p-4 slide-up max-w-3xl mx-auto pb-32">
             <div class="flex justify-between items-center mb-4 no-print">
                 <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap justify-end">
+                    <button id="btn-assume-os" onclick="assumeOS()" class="px-3 py-1.5 bg-dark text-brand border border-gray-800 text-xs font-bold rounded shadow-sm hover:bg-gray-800 transition flex items-center gap-1 hidden">
+                        <i class="fas fa-hand-paper"></i> <span class="hidden sm:inline">Assumir OS</span>
+                    </button>
                     <button id="btn-delete-os" onclick="deleteOS()" class="px-3 py-1.5 bg-red-50 text-danger border border-red-200 text-xs font-bold rounded shadow-sm hover:bg-red-100 transition flex items-center gap-1 hidden">
                         <i class="fas fa-trash-alt"></i> <span class="hidden sm:inline">Excluir</span>
                     </button>
@@ -353,6 +406,23 @@
                                 <textarea id="manage-diagnostic" rows="2" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none"></textarea>
                             </div>
 
+                            <!-- Campos apenas visíveis para status Concluída / Resolução -->
+                            <div id="manage-resolution-fields" class="hidden bg-green-50 p-3 rounded-lg border border-green-200 space-y-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Causa do Ocorrido (Raiz)</label>
+                                    <textarea id="manage-cause" rows="2" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none" placeholder="O que causou o problema?"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Fotos da Resolução</label>
+                                    <label class="flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors bg-white shadow-sm">
+                                        <i class="fas fa-camera text-xl text-dark mb-1"></i>
+                                        <span class="text-[10px] font-bold text-gray-600">Adicionar Foto</span>
+                                        <input id="manage-resolution-photo" type="file" accept="image/*" class="sr-only" onchange="previewResolutionPhoto(event)">
+                                    </label>
+                                    <div id="preview-resolution-photos-container" class="grid grid-cols-2 gap-2 mt-2 empty:hidden"></div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-1">Materiais Utilizados (Almoxarifado)</label>
                                 <div class="flex gap-2 mb-2">
@@ -370,10 +440,19 @@
 
                         <div id="readonly-management" class="text-sm space-y-3">
                             <p><span class="text-gray-500 text-xs">Atribuído a:</span> <span class="font-bold block" id="print-assigned"></span></p>
+                            <p><span class="text-gray-500 text-xs">Horário:</span> <span class="font-bold block" id="print-times"></span></p>
                             <p><span class="text-gray-500 text-xs">Prazo:</span> <span class="font-bold block" id="print-deadline"></span></p>
                             <div>
                                 <span class="text-gray-500 text-xs block mb-1">Diagnóstico:</span>
                                 <p id="print-diagnostic" class="bg-gray-50 p-2 rounded border text-sm whitespace-pre-wrap"></p>
+                            </div>
+                            <div id="print-cause-container" class="hidden">
+                                <span class="text-gray-500 text-xs block mb-1">Causa do Ocorrido:</span>
+                                <p id="print-cause" class="bg-green-50 p-2 rounded border border-green-100 text-sm whitespace-pre-wrap"></p>
+                            </div>
+                            <div id="print-res-photos-container" class="hidden">
+                                <span class="text-gray-500 text-xs block mb-1">Fotos da Resolução:</span>
+                                <div id="print-res-photos-grid" class="grid grid-cols-2 gap-2"></div>
                             </div>
                             <div>
                                 <span class="text-gray-500 text-xs block mb-1">Materiais:</span>
@@ -443,6 +522,26 @@
                     <input type="file" onchange="updateLogo(event)" class="text-xs w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brandLight file:text-brand hover:file:bg-yellow-100 transition">
                 </div>
 
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-users-section">
+                    <h3 class="font-bold text-sm mb-3 text-dark">Gerenciar Usuários</h3>
+                    <form id="form-new-user" onsubmit="adminCreateUser(event)" class="space-y-3 mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Novo Usuário</h4>
+                        <input type="text" id="new-user-name" required placeholder="Nome Completo" class="w-full p-2 text-sm bg-white border border-gray-200 rounded outline-none focus:border-brand">
+                        <input type="email" id="new-user-email" required placeholder="E-mail" class="w-full p-2 text-sm bg-white border border-gray-200 rounded outline-none focus:border-brand">
+                        <input type="password" id="new-user-pass" required placeholder="Senha (ou PIN)" class="w-full p-2 text-sm bg-white border border-gray-200 rounded outline-none focus:border-brand">
+                        <select id="new-user-role" required class="w-full p-2 text-sm bg-white border border-gray-200 rounded outline-none focus:border-brand">
+                            <option value="" disabled selected>Selecionar Papel</option>
+                            <option value="maintenance">Manutenção</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                        <button type="submit" id="btn-create-user" class="w-full bg-dark text-brand py-2 rounded text-sm font-bold shadow-sm active:scale-95 transition">Criar Conta</button>
+                    </form>
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2 mt-4">Usuários Cadastrados</h4>
+                    <ul id="list-settings-users" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1">
+                        <!-- Gerado via JS -->
+                    </ul>
+                </div>
+
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="font-bold text-sm mb-3 text-dark">Gerenciar Setores</h3>
                     <div class="flex gap-2 mb-3">
@@ -494,9 +593,9 @@
 
     <!-- Módulo do Firebase e Scripts da Aplicação -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         // Configuração do Firebase com suporte tanto ao ambiente atual quanto ao seu domínio
         // =========================================================================
@@ -529,28 +628,42 @@
             orders: [],
             tempItems: [],
             newOsPhotos: [],
+            resolutionPhotos: [],
             currentListSector: null
         };
         let currentViewId = 'login';
 
         // --- INICIALIZAÇÃO DE DADOS E AUTENTICAÇÃO ---
         const initAuthAndData = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    if (user.isAnonymous) {
+                        appState.currentUser = { role: 'requester', uid: user.uid, name: 'Anônimo' };
+                        finalizeLogin('requester');
+                    } else {
+                        try {
+                            const userDoc = await getDoc(doc(db, "users", user.uid));
+                            if (userDoc.exists()) {
+                                appState.currentUser = { uid: user.uid, ...userDoc.data() };
+                                finalizeLogin(appState.currentUser.role);
+                            } else {
+                                console.warn("Usuário logado mas sem documento na coleção users.");
+                                appState.currentUser = { role: 'requester', uid: user.uid, name: 'Usuário Sem Papel' };
+                                finalizeLogin('requester');
+                            }
+                        } catch (err) {
+                            console.error("Erro ao buscar dados do usuário:", err);
+                        }
+                    }
                 } else {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch(authErr) {
-                        console.warn("Aviso: Falha na autenticação anônima. O banco de dados precisará ter regras públicas.", authErr);
+                    appState.currentUser = null;
+                    if(currentViewId !== 'login') {
+                        logoutUI();
                     }
                 }
-            } catch (err) {
-                console.error("Erro na autenticação:", err);
-            } finally {
-                // Tenta escutar o banco de dados independentemente do sucesso da autenticação
-                setupDatabaseListeners();
-            }
+            });
+
+            setupDatabaseListeners();
         };
 
         // Helpers de rotas seguras para o banco
@@ -722,21 +835,106 @@
         }
 
         // --- NAVEGAÇÃO E LOGIN ---
-        function login(role) {
-            appState.currentUser = { role };
+        function showLoginForm(role) {
+            document.getElementById('login-options').classList.add('hidden');
+            const form = document.getElementById('form-login-credentials');
+            form.classList.remove('hidden');
+            document.getElementById('login-role-intent').value = role;
+            document.getElementById('login-title').innerText = role === 'admin' ? 'Acesso Administrador' : 'Acesso Manutenção';
+        }
+
+        function hideLoginForm() {
+            document.getElementById('form-login-credentials').classList.add('hidden');
+            document.getElementById('login-options').classList.remove('hidden');
+            document.getElementById('form-login-credentials').reset();
+        }
+
+        async function loginAnonymous() {
+            try {
+                showToast("Entrando como solicitante...");
+                await signInAnonymously(auth);
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao entrar. Verifique sua conexão.");
+            }
+        }
+
+        async function handleLoginCredentials(e) {
+            e.preventDefault();
+            let email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-submit-login');
+            
+            // Se o usuário digitou apenas um nome de usuário (ex: ADMIN), adiciona um domínio padrão
+            if (email && !email.includes('@')) {
+                email = email.toLowerCase() + '@manutencao.com';
+            }
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                // O onAuthStateChanged vai redirecionar e carregar o role
+            } catch (err) {
+                // Auto-setup do usuário ADMIN se ele ainda não existir no Firebase
+                if (email.toLowerCase() === 'admin@manutencao.com' && pass === 'imacadmmanut') {
+                    try {
+                        const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+                        await setDoc(doc(db, "users", userCred.user.uid), {
+                            name: "Administrador Geral",
+                            email: email,
+                            role: "admin",
+                            createdAt: new Date().toISOString()
+                        });
+                        showToast("Conta de administrador inicializada com sucesso!");
+                        return; // O onAuthStateChanged fará o redirecionamento
+                    } catch (createErr) {
+                        console.error("Erro ao criar usuário admin automaticamente:", createErr);
+                    }
+                }
+                
+                console.error(err);
+                showToast("E-mail ou senha inválidos.");
+                btn.innerHTML = 'Entrar';
+                btn.disabled = false;
+            }
+        }
+
+        function finalizeLogin(role) {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('main-header').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
             
-            const isMaint = role === 'maintenance';
-            document.querySelectorAll('.req-action').forEach(el => el.style.display = isMaint ? 'none' : 'flex');
-            document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaint ? 'flex' : 'none');
+            const isMaintOrAdmin = role === 'maintenance' || role === 'admin';
+            document.querySelectorAll('.req-action').forEach(el => el.style.display = isMaintOrAdmin ? 'none' : 'flex');
+            document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaintOrAdmin ? 'flex' : 'none');
             
+            if (role === 'admin') {
+                // Admin vê o menu settings
+                document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
+            } else if (role === 'maintenance') {
+                // Manutenção não vê o menu settings
+                document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'none';
+            }
+
+            // Reseta o botão de login se estava carregando
+            const btn = document.getElementById('btn-submit-login');
+            if (btn) { btn.innerHTML = 'Entrar'; btn.disabled = false; }
+            hideLoginForm();
+
             navigate('home');
         }
 
-        function logout() {
-            appState.currentUser = null;
+        async function logout() {
+            try {
+                await signOut(auth);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function logoutUI() {
             currentViewId = 'login';
             document.getElementById('view-login').classList.remove('hidden');
             document.getElementById('main-header').classList.add('hidden');
@@ -783,6 +981,8 @@
             let totalAndamento = 0;
             let totalConcluidas = 0;
             let totalUrgentes = 0;
+            let totalMinhas = 0;
+            let totalLivres = 0;
 
             appState.orders.forEach(o => {
                 if (['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status)) totalPendentes++;
@@ -791,6 +991,16 @@
                 
                 if (o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada') {
                     totalUrgentes++;
+                }
+
+                // Contagens para equipe de manutenção
+                if (o.status !== 'Concluída' && o.status !== 'Cancelada') {
+                    if (appState.currentUser && o.assignedTo === appState.currentUser.name) {
+                        totalMinhas++;
+                    }
+                    if (!o.assignedTo) {
+                        totalLivres++;
+                    }
                 }
             });
 
@@ -802,10 +1012,21 @@
             const urgVal = document.getElementById('dash-urgentes');
             if (urgCard && urgVal) {
                 urgVal.innerText = totalUrgentes;
-                if (totalUrgentes > 0 && appState.currentUser && appState.currentUser.role === 'maintenance') {
+                if (totalUrgentes > 0 && appState.currentUser && (appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin')) {
                     urgCard.classList.remove('hidden');
                 } else {
                     urgCard.classList.add('hidden');
+                }
+            }
+
+            const maintQuickActions = document.getElementById('maint-quick-actions');
+            if (maintQuickActions && appState.currentUser) {
+                if (appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin') {
+                    maintQuickActions.classList.remove('hidden');
+                    document.getElementById('dash-my-tasks').innerText = totalMinhas;
+                    document.getElementById('dash-free-tasks').innerText = totalLivres;
+                } else {
+                    maintQuickActions.classList.add('hidden');
                 }
             }
 
@@ -854,6 +1075,16 @@
             navigate('sector-os');
         }
 
+        function openMyActivities() {
+            appState.currentListSector = 'MINHAS';
+            navigate('sector-os');
+        }
+
+        function openFreeActivities() {
+            appState.currentListSector = 'LIVRES';
+            navigate('sector-os');
+        }
+
         const getStatusStyles = (status) => {
             if(status === 'Concluída') return 'bg-gray-100 text-gray-500 border-gray-200';
             if(status === 'Solicitada') return 'bg-white text-gray-600 border-gray-300';
@@ -870,6 +1101,8 @@
             const isUrgentes = appState.currentListSector === 'URGENTES';
             const isPendentes = appState.currentListSector === 'PENDENTES';
             const isAndamento = appState.currentListSector === 'ANDAMENTO';
+            const isMinhas = appState.currentListSector === 'MINHAS';
+            const isLivres = appState.currentListSector === 'LIVRES';
             
             const filtersBlock = document.getElementById('concluidas-filters');
             if(isConcluidas) {
@@ -886,6 +1119,8 @@
                 if (isUrgentes) document.getElementById('list-sector-title').innerText = "OS Urgentes";
                 else if (isPendentes) document.getElementById('list-sector-title').innerText = "OS Pendentes";
                 else if (isAndamento) document.getElementById('list-sector-title').innerText = "Em Andamento";
+                else if (isMinhas) document.getElementById('list-sector-title').innerText = "Minhas Atividades";
+                else if (isLivres) document.getElementById('list-sector-title').innerText = "Atividades Livres";
                 else document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
             }
 
@@ -907,6 +1142,10 @@
                 filtered = filtered.filter(o => ['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status));
             } else if(isAndamento) {
                 filtered = filtered.filter(o => ['Em Diagnóstico', 'Em Execução'].includes(o.status));
+            } else if(isMinhas) {
+                filtered = filtered.filter(o => o.assignedTo === appState.currentUser.name && o.status !== 'Concluída' && o.status !== 'Cancelada');
+            } else if(isLivres) {
+                filtered = filtered.filter(o => !o.assignedTo && o.status !== 'Concluída' && o.status !== 'Cancelada');
             } else if(!isMyHistory) {
                 filtered = filtered.filter(o => o.sector === appState.currentListSector && o.status !== 'Concluída');
             }
@@ -1050,6 +1289,61 @@
             }
         }
 
+        // --- FOTOS DE RESOLUÇÃO ---
+        function previewResolutionPhoto(event) {
+            const files = event.target.files;
+            if(!files || files.length === 0) return;
+            
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        let scaleSize = MAX_WIDTH / img.width;
+                        if(scaleSize > 1) scaleSize = 1; 
+                        
+                        canvas.width = img.width * scaleSize;
+                        canvas.height = img.height * scaleSize;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); 
+                        
+                        if(!appState.resolutionPhotos) appState.resolutionPhotos = [];
+                        appState.resolutionPhotos.push(compressedBase64);
+                        renderResolutionPhotos();
+                    }
+                    img.src = e.target.result;
+                }; 
+                reader.readAsDataURL(file);
+            });
+            event.target.value = '';
+        }
+
+        function renderResolutionPhotos() {
+            const container = document.getElementById('preview-resolution-photos-container');
+            if(!container) return;
+            container.innerHTML = '';
+            (appState.resolutionPhotos || []).forEach((photoBase64, idx) => {
+                container.innerHTML += `
+                    <div class="relative group mt-2">
+                        <img src="${photoBase64}" class="h-24 w-full object-cover rounded border border-gray-200 shadow-sm">
+                        <button type="button" onclick="removeResolutionPhoto(${idx})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow hover:bg-red-600 active:scale-95"><i class="fas fa-times text-xs"></i></button>
+                    </div>
+                `;
+            });
+        }
+        
+        function removeResolutionPhoto(idx) {
+            if(appState.resolutionPhotos) {
+                appState.resolutionPhotos.splice(idx, 1);
+                renderResolutionPhotos();
+            }
+        }
+
         async function handleNewOS(e) {
             e.preventDefault();
             try {
@@ -1171,13 +1465,20 @@
                 else photoContainer.classList.add('hidden');
             }
 
-            const isMaint = appState.currentUser.role === 'maintenance';
+            const isMaint = appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin';
             document.getElementById('form-manage-os').classList.toggle('hidden', !isMaint);
             document.getElementById('readonly-management').classList.toggle('hidden', isMaint);
             
             document.getElementById('btn-print-os').classList.toggle('hidden', !isMaint);
-            document.getElementById('btn-delete-os').classList.toggle('hidden', !isMaint); 
+            document.getElementById('btn-delete-os').classList.toggle('hidden', appState.currentUser.role !== 'admin'); 
             
+            const btnAssume = document.getElementById('btn-assume-os');
+            if (isMaint && (!os.assignedTo || os.assignedTo !== appState.currentUser.name) && os.status !== 'Concluída' && os.status !== 'Cancelada') {
+                btnAssume.classList.remove('hidden');
+            } else {
+                btnAssume.classList.add('hidden');
+            }
+
             const showAlmo = isMaint && os.status === 'Concluída' && os.itemsUsed && os.itemsUsed.length > 0;
             document.getElementById('btn-print-almo').classList.toggle('hidden', !showAlmo);
 
@@ -1191,7 +1492,24 @@
                 tempStatuses.forEach(st => statusSelect.innerHTML += `<option value="${st}">${st}</option>`);
                 statusSelect.value = os.status;
                 
+                // Add listener to show/hide resolution fields
+                statusSelect.onchange = function() {
+                    const resFields = document.getElementById('manage-resolution-fields');
+                    if (this.value === 'Concluída') {
+                        resFields.classList.remove('hidden');
+                    } else {
+                        resFields.classList.add('hidden');
+                    }
+                };
+                // Trigger it initially
+                statusSelect.onchange();
+
                 document.getElementById('manage-diagnostic').value = os.diagnostic || '';
+                document.getElementById('manage-cause').value = os.cause || '';
+                
+                appState.resolutionPhotos = os.resolutionPhotos ? [...os.resolutionPhotos] : [];
+                renderResolutionPhotos();
+
                 document.getElementById('manage-deadline').value = os.deadline ? os.deadline.split('T')[0] : '';
                 document.getElementById('manage-gut-g').value = os.gut.g;
                 document.getElementById('manage-gut-u').value = os.gut.u;
@@ -1218,8 +1536,33 @@
 
             } else {
                 document.getElementById('print-assigned').innerText = os.assignedTo || 'Aguardando atribuição';
+                
+                let timeStr = '';
+                if(os.startTime) timeStr += `Início: ${new Date(os.startTime).toLocaleString('pt-BR')} `;
+                if(os.endTime) timeStr += `\nFim: ${new Date(os.endTime).toLocaleString('pt-BR')}`;
+                document.getElementById('print-times').innerText = timeStr || '-';
+
                 document.getElementById('print-deadline').innerText = os.deadline ? new Date(os.deadline).toLocaleDateString('pt-BR') : '-';
                 document.getElementById('print-diagnostic').innerText = os.diagnostic || '-';
+                
+                if (os.cause) {
+                    document.getElementById('print-cause-container').classList.remove('hidden');
+                    document.getElementById('print-cause').innerText = os.cause;
+                } else {
+                    document.getElementById('print-cause-container').classList.add('hidden');
+                }
+
+                if (os.resolutionPhotos && os.resolutionPhotos.length > 0) {
+                    document.getElementById('print-res-photos-container').classList.remove('hidden');
+                    const rGrid = document.getElementById('print-res-photos-grid');
+                    rGrid.innerHTML = '';
+                    os.resolutionPhotos.forEach(p => {
+                        rGrid.innerHTML += `<img src="${p}" class="w-full h-32 object-cover rounded border cursor-pointer" onclick="openPhotoModal('${p}')">`;
+                    });
+                } else {
+                    document.getElementById('print-res-photos-container').classList.add('hidden');
+                }
+
                 const pItems = document.getElementById('print-items');
                 pItems.innerHTML = '';
                 if(os.itemsUsed) {
@@ -1252,7 +1595,8 @@
             const osIndex = appState.orders.findIndex(o => o.id === id);
             
             if(osIndex > -1 && dbId) {
-                const oldStatus = appState.orders[osIndex].status;
+                const os = appState.orders[osIndex];
+                const oldStatus = os.status;
                 const newStatus = document.getElementById('manage-status').value;
                 const dateInput = document.getElementById('manage-deadline').value;
                 
@@ -1262,14 +1606,25 @@
                     isoDeadline = d.toISOString();
                 }
 
-                await updateDoc(getOrderDoc(dbId), {
+                let updateData = {
                     status: newStatus,
                     assignedTo: document.getElementById('manage-assigned').value,
                     diagnostic: document.getElementById('manage-diagnostic').value,
                     gut: calculateGUT('manage'),
                     itemsUsed: [...appState.tempItems],
                     deadline: isoDeadline
-                });
+                };
+
+                // Se mudou para Concluída, grava o endTime e os campos extras
+                if (newStatus === 'Concluída') {
+                    if (oldStatus !== 'Concluída') {
+                        updateData.endTime = new Date().toISOString();
+                    }
+                    updateData.cause = document.getElementById('manage-cause').value;
+                    updateData.resolutionPhotos = [...appState.resolutionPhotos];
+                }
+
+                await updateDoc(getOrderDoc(dbId), updateData);
 
                 if(oldStatus !== newStatus) {
                     showToast(`Status atualizado para '${newStatus}'. Pode avisar o solicitante via WhatsApp.`);
@@ -1278,6 +1633,36 @@
                 }
 
                 openOSDetails(id); 
+            }
+        }
+
+        async function assumeOS() {
+            const id = document.getElementById('manage-os-id').value;
+            const dbId = document.getElementById('manage-os-dbid').value;
+            
+            if(!dbId) return;
+
+            const myName = appState.currentUser.name;
+            document.getElementById('manage-assigned').value = myName;
+
+            try {
+                await updateDoc(getOrderDoc(dbId), {
+                    assignedTo: myName,
+                    startTime: new Date().toISOString()
+                });
+                
+                showToast(`Você assumiu a ${id}. Opcional: envie atualização pelo WhatsApp.`);
+                openOSDetails(id);
+
+                // Abre o WhatsApp para o solicitante (simulando clique no botão de encaminhar customizado)
+                const os = appState.orders.find(o => o.id === id);
+                if (os) {
+                    const msg = encodeURIComponent(`Olá ${os.requester},\nSua ordem de serviço *${id}* foi assumida por *${myName}* e está em andamento.`);
+                    window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+                }
+            } catch(e) {
+                console.error("Erro ao assumir:", e);
+                showToast("Erro ao assumir OS.");
             }
         }
 
@@ -1327,6 +1712,11 @@
 
         // --- CONFIGURAÇÕES DO SISTEMA ---
         function renderSettings() {
+            // Só ouve os usuários se for admin e estiver na tela de configurações
+            if (appState.currentUser && appState.currentUser.role === 'admin') {
+                listenToUsers();
+            }
+
             const ulSectors = document.getElementById('list-settings-sectors');
             if(ulSectors) {
                 ulSectors.innerHTML = '';
@@ -1565,17 +1955,103 @@
             }
         }
 
+        // --- GESTÃO DE USUÁRIOS (ADMIN) ---
+        async function adminCreateUser(e) {
+            e.preventDefault();
+            if (appState.currentUser.role !== 'admin') {
+                showToast("Acesso negado.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-create-user');
+            const originalText = btn.innerText;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            const name = document.getElementById('new-user-name').value.trim();
+            const email = document.getElementById('new-user-email').value.trim();
+            const pass = document.getElementById('new-user-pass').value;
+            const role = document.getElementById('new-user-role').value;
+
+            try {
+                // Instancia app secundário para não deslogar o admin
+                const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+                const secondaryAuth = getAuth(secondaryApp);
+
+                const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                const newUid = userCred.user.uid;
+
+                // Deleta a instância secundária
+                await deleteApp(secondaryApp);
+
+                // Salva o perfil na coleção 'users' usando o banco principal
+                await setDoc(doc(db, "users", newUid), {
+                    name, email, role, createdAt: new Date().toISOString()
+                });
+
+                // Se for manutenção, garante que o nome dele esteja na lista de colaboradores do setor
+                if (role === 'maintenance') {
+                    if (!appState.collaborators.includes(name)) {
+                        const newCollabs = [...appState.collaborators, name];
+                        await setDoc(getSettingsDoc(), { collaborators: newCollabs }, { merge: true });
+                    }
+                }
+
+                showToast("Usuário criado com sucesso!");
+                document.getElementById('form-new-user').reset();
+            } catch (err) {
+                console.error("Erro ao criar usuário:", err);
+                showToast("Falha ao criar usuário: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Listener para usuários (apenas para Admin ver a lista)
+        let usersUnsubscribe = null;
+        function listenToUsers() {
+            if (usersUnsubscribe) return; // Já está escutando
+            usersUnsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+                const ulUsers = document.getElementById('list-settings-users');
+                if (!ulUsers) return;
+                ulUsers.innerHTML = '';
+                snapshot.forEach(docSnap => {
+                    const u = docSnap.data();
+                    ulUsers.innerHTML += `
+                        <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
+                            <div>
+                                <div class="font-medium text-dark">${u.name}</div>
+                                <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${u.role}</span></div>
+                            </div>
+                        </li>
+                    `;
+                });
+            }, (err) => {
+                console.error("Erro ao ler usuários", err);
+            });
+        }
+
         // --- MAPEAR FUNÇÕES PARA O WINDOW (Essencial em type="module") ---
-        window.login = login;
+        window.adminCreateUser = adminCreateUser;
+        window.loginAnonymous = loginAnonymous;
+        window.showLoginForm = showLoginForm;
+        window.hideLoginForm = hideLoginForm;
+        window.handleLoginCredentials = handleLoginCredentials;
         window.logout = logout;
         window.navigate = navigate;
         window.openSector = openSector;
         window.openUrgentOS = openUrgentOS;
+        window.openMyActivities = openMyActivities;
+        window.openFreeActivities = openFreeActivities;
         window.renderSectorList = renderSectorList;
         window.calculateGUT = calculateGUT;
         window.previewPhoto = previewPhoto;
         window.removeNewOsPhoto = removeNewOsPhoto;
         window.renderNewOsPhotos = renderNewOsPhotos;
+        window.previewResolutionPhoto = previewResolutionPhoto;
+        window.renderResolutionPhotos = renderResolutionPhotos;
+        window.removeResolutionPhoto = removeResolutionPhoto;
         window.handleNewOS = handleNewOS;
         window.globalSearchOS = globalSearchOS;
         window.openOSDetails = openOSDetails;
@@ -1598,6 +2074,7 @@
         window.saveEditStatus = saveEditStatus;
         window.deleteStatus = deleteStatus;
         window.installApp = installApp;
+        window.assumeOS = assumeOS;
         window.deleteOS = deleteOS;
 
         window.openPhotoModal = openPhotoModal;
