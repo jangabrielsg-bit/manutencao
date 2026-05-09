@@ -1609,6 +1609,9 @@
 
                 maintUsers.forEach(c => assignSelect.innerHTML += `<option value="${c}" ${os.assignedTo === c ? 'selected' : ''}>${c}</option>`);
 
+                // Apenas o Admin pode trocar o responsável da atividade manualmente
+                assignSelect.disabled = appState.currentUser.role !== 'admin';
+
                 appState.tempItems = [...(os.itemsUsed || [])];
                 renderManageItems();
                 
@@ -1712,6 +1715,9 @@
                     updateData.cause = document.getElementById('manage-cause').value;
                     updateData.resolutionPhotos = [...appState.resolutionPhotos];
                 }
+
+                // Atualiza o estado local imediatamente para evitar que o openOSDetails re-renderize os dados antigos enquanto o banco não responde
+                appState.orders[osIndex] = { ...appState.orders[osIndex], ...updateData };
 
                 await updateDoc(getOrderDoc(dbId), updateData);
 
