@@ -775,7 +775,7 @@
 
             // Carrega os usuários para popular o dropdown de técnicos (se tiver permissão)
             onSnapshot(collection(db, "users"), (snapshot) => {
-                appState.registeredUsers = snapshot.docs.map(d => d.data());
+                appState.registeredUsers = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
                 // Se estiver na tela de configurações e for admin, atualiza a lista de usuários
                 if (currentViewId === 'settings' && appState.currentUser && appState.currentUser.role === 'admin') {
                     renderUsersSettings();
@@ -2253,14 +2253,69 @@
             (appState.registeredUsers || []).forEach(u => {
                 const roleLabel = u.role === 'maintenance' ? 'Manutenção' : (u.role === 'admin' ? 'Admin' : u.role);
                 ulUsers.innerHTML += `
-                    <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
+                    <li id="user-li-${u.uid}" class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                         <div>
                             <div class="font-medium text-dark">${u.name}</div>
                             <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${roleLabel}</span></div>
                         </div>
+                        <div class="flex gap-3 shrink-0">
+                            <button onclick="editUser('${u.uid}')" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteUser('${u.uid}', '${u.name}')" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
+                        </div>
                     </li>
                 `;
             });
+        }
+
+        function editUser(uid) {
+            const u = appState.registeredUsers.find(x => x.uid === uid);
+            if(!u) return;
+            const li = document.getElementById(`user-li-${uid}`);
+            li.innerHTML = `
+                <div class="flex flex-col gap-2 w-full bg-white p-2 border border-brand rounded-lg">
+                    <div class="text-xs font-bold text-gray-500 uppercase mb-1">Editar Usuário</div>
+                    <input type="text" id="edit-u-name-${uid}" value="${u.name}" class="w-full p-2 text-xs border border-gray-200 rounded outline-none focus:border-brand" placeholder="Nome">
+                    <input type="email" id="edit-u-email-${uid}" value="${u.email}" class="w-full p-2 text-xs border border-gray-200 rounded outline-none focus:border-brand" placeholder="Email">
+                    <input type="text" id="edit-u-pass-${uid}" value="${u.pass || ''}" class="w-full p-2 text-xs border border-gray-200 rounded outline-none focus:border-brand" placeholder="Senha">
+                    <select id="edit-u-role-${uid}" class="w-full p-2 text-xs border border-gray-200 rounded outline-none focus:border-brand">
+                        <option value="maintenance" ${u.role === 'maintenance'?'selected':''}>Manutenção</option>
+                        <option value="admin" ${u.role === 'admin'?'selected':''}>Administrador</option>
+                    </select>
+                    <div class="flex gap-2 justify-end mt-2">
+                        <button onclick="renderUsersSettings()" class="bg-gray-200 text-dark px-3 py-1.5 rounded text-xs font-bold shadow-sm active:scale-95">Cancelar</button>
+                        <button onclick="saveEditUser('${uid}')" class="bg-dark text-brand px-4 py-1.5 rounded text-xs font-bold shadow-sm active:scale-95">Salvar</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveEditUser(uid) {
+            const name = document.getElementById(`edit-u-name-${uid}`).value.trim();
+            const email = document.getElementById(`edit-u-email-${uid}`).value.trim().toLowerCase();
+            const pass = document.getElementById(`edit-u-pass-${uid}`).value;
+            const role = document.getElementById(`edit-u-role-${uid}`).value;
+
+            if(!name || !email) return showToast("Nome e E-mail são obrigatórios.");
+
+            try {
+                await updateDoc(doc(db, "users", uid), { name, email, pass, role });
+                showToast("Usuário atualizado com sucesso!");
+            } catch (err) {
+                console.error("Erro ao atualizar usuário:", err);
+                showToast("Falha ao atualizar. Verifique permissões.");
+            }
+        }
+
+        async function deleteUser(uid, name) {
+            if(confirm(`ATENÇÃO: Deseja excluir o usuário ${name}?\nEle perderá acesso ao sistema imediatamente.`)) {
+                try {
+                    await deleteDoc(doc(db, "users", uid));
+                    showToast("Usuário excluído.");
+                } catch(e) {
+                    console.error("Erro ao excluir usuário:", e);
+                    showToast("Erro ao excluir.");
+                }
+            }
         }
 
         // --- MAPEAR FUNÇÕES PARA O WINDOW (Essencial em type="module") ---
@@ -2287,6 +2342,7 @@
         window.handleNewOS = handleNewOS;
         window.globalSearchOS = globalSearchOS;
         window.openOSDetails = openOSDetails;
+        window.openTechOS = openTechOS;
         window.addItemToOS = addItemToOS;
         window.removeItem = removeItem;
         window.saveOSManagement = saveOSManagement;
@@ -2301,6 +2357,9 @@
         window.editCollaborator = editCollaborator;
         window.saveEditCollaborator = saveEditCollaborator;
         window.deleteCollaborator = deleteCollaborator;
+        window.editUser = editUser;
+        window.saveEditUser = saveEditUser;
+        window.deleteUser = deleteUser;
         window.addStatus = addStatus;
         window.editStatus = editStatus;
         window.saveEditStatus = saveEditStatus;
