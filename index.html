@@ -129,6 +129,7 @@
                     <i class="fas fa-bell text-red-600"></i>
                     <span id="badge-urgent-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
                 </button>
+                <button id="btn-nav-analytics" onclick="navigate('analytics')" class="hidden w-8 h-8 rounded-full border border-dark/20 items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-chart-bar"></i></button>
                 <button onclick="navigate('settings')" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-cog"></i></button>
                 <button onclick="logout()" class="w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-sign-out-alt"></i></button>
             </div>
@@ -518,6 +519,20 @@
             </div>
         </div>
 
+            <!-- View: Analytics (Painel de Gestão) -->
+            <div id="view-analytics" class="view-section hidden p-6 pb-32 max-w-5xl mx-auto slide-up">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-dark uppercase">Painel de Gestão</h2>
+                </div>
+                
+                <p class="text-sm text-gray-500 mb-6">Indicadores de desempenho e carga de trabalho da equipe de manutenção.</p>
+
+                <div id="analytics-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
         <!-- View: Settings -->
         <div id="view-settings" class="view-section hidden p-6 max-w-md mx-auto slide-up pb-32">
             <h2 class="text-xl font-bold text-dark mb-6">Configurações</h2>
@@ -662,8 +677,15 @@
                     document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaintOrAdmin ? 'flex' : 'none');
                     if (role === 'admin') {
                         document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
+                        if(document.getElementById('btn-nav-analytics')) {
+                            document.getElementById('btn-nav-analytics').style.display = 'flex';
+                            document.getElementById('btn-nav-analytics').classList.remove('hidden');
+                        }
                     } else if (role === 'maintenance') {
                         document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'none';
+                        if(document.getElementById('btn-nav-analytics')) {
+                            document.getElementById('btn-nav-analytics').style.display = 'none';
+                        }
                     }
                     navigate('home');
                 } catch (e) {
@@ -1043,6 +1065,9 @@
                 appState.currentListSector = null; 
                 viewId = 'sector-os';
             }
+            if(viewId === 'analytics') {
+                renderAnalytics();
+            }
 
             currentViewId = viewId;
 
@@ -1183,6 +1208,93 @@
             navigate('sector-os');
         }
 
+        function openTechOS(techName) {
+            appState.currentListSector = 'TECH:' + techName;
+            navigate('sector-os');
+        }
+
+        function renderAnalytics() {
+            const grid = document.getElementById('analytics-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+
+            const techs = (appState.registeredUsers || []).filter(u => u.role === 'maintenance');
+            
+            if(techs.length === 0) {
+                grid.innerHTML = '<div class="col-span-full p-6 text-center text-gray-500 bg-white rounded-xl border border-gray-200">Nenhum colaborador de manutenção cadastrado.</div>';
+                return;
+            }
+
+            techs.forEach(tech => {
+                const techOrders = appState.orders.filter(o => o.assignedTo === tech.name);
+                
+                let activeCount = 0;
+                let sumGut = 0;
+                let concludedCount = 0;
+                let sumTimeMs = 0;
+
+                techOrders.forEach(o => {
+                    if (o.status === 'Concluída') {
+                        concludedCount++;
+                        if (o.startTime && o.endTime) {
+                            const start = new Date(o.startTime).getTime();
+                            const end = new Date(o.endTime).getTime();
+                            sumTimeMs += (end - start);
+                        }
+                    } else if (o.status !== 'Cancelada') {
+                        activeCount++;
+                        if (o.gut) {
+                            sumGut += (parseInt(o.gut.g||0) * parseInt(o.gut.u||0) * parseInt(o.gut.t||0));
+                        }
+                    }
+                });
+
+                const avgGut = activeCount > 0 ? (sumGut / activeCount).toFixed(1) : 0;
+                
+                let avgTimeStr = '-';
+                if (concludedCount > 0 && sumTimeMs > 0) {
+                    const avgMs = sumTimeMs / concludedCount;
+                    const hours = avgMs / (1000 * 60 * 60);
+                    if (hours < 1) {
+                        avgTimeStr = Math.round(hours * 60) + ' min';
+                    } else if (hours < 24) {
+                        avgTimeStr = hours.toFixed(1) + ' hrs';
+                    } else {
+                        avgTimeStr = (hours / 24).toFixed(1) + ' dias';
+                    }
+                }
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-brand transition">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-brandLight text-brand flex items-center justify-center font-bold text-lg"><i class="fas fa-user"></i></div>
+                            <div>
+                                <h3 class="font-bold text-dark">${tech.name}</h3>
+                                <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">${activeCount} ATIVIDADES EM ANDAMENTO</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
+                                <span class="block text-2xl font-black text-dark mb-1">${avgGut}</span>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase">GUT Médio (Atuais)</span>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
+                                <span class="block text-2xl font-black text-dark mb-1">${concludedCount}</span>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase">OS Finalizadas</span>
+                            </div>
+                            <div class="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100 flex justify-between items-center">
+                                <span class="text-[10px] font-bold text-gray-500 uppercase">Tempo Méd. de Finalização</span>
+                                <span class="text-sm font-black text-dark">${avgTimeStr}</span>
+                            </div>
+                        </div>
+
+                        <button onclick="openTechOS('${tech.name}')" class="w-full bg-dark text-white py-2 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition hover:bg-gray-800">Ver Atividades</button>
+                    </div>
+                `;
+            });
+        }
+
         function openUrgentOS() {
             appState.currentListSector = 'URGENTES';
             navigate('sector-os');
@@ -1216,6 +1328,8 @@
             const isAndamento = appState.currentListSector === 'ANDAMENTO';
             const isMinhas = appState.currentListSector === 'MINHAS';
             const isLivres = appState.currentListSector === 'LIVRES';
+            const isTech = appState.currentListSector && appState.currentListSector.startsWith('TECH:');
+            const targetTech = isTech ? appState.currentListSector.split(':')[1] : null;
             
             const filtersBlock = document.getElementById('concluidas-filters');
             if(isConcluidas) {
@@ -1234,6 +1348,7 @@
                 else if (isAndamento) document.getElementById('list-sector-title').innerText = "Em Andamento";
                 else if (isMinhas) document.getElementById('list-sector-title').innerText = "Minhas Atividades";
                 else if (isLivres) document.getElementById('list-sector-title').innerText = "Atividades Livres";
+                else if (isTech) document.getElementById('list-sector-title').innerText = "Atividades: " + targetTech;
                 else document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
             }
 
@@ -1259,6 +1374,8 @@
                 filtered = filtered.filter(o => o.assignedTo === appState.currentUser.name && o.status !== 'Concluída' && o.status !== 'Cancelada');
             } else if(isLivres) {
                 filtered = filtered.filter(o => !o.assignedTo && o.status !== 'Concluída' && o.status !== 'Cancelada');
+            } else if(isTech) {
+                filtered = filtered.filter(o => o.assignedTo === targetTech);
             } else if(!isMyHistory) {
                 filtered = filtered.filter(o => o.sector === appState.currentListSector && o.status !== 'Concluída');
             }
