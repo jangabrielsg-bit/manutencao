@@ -1415,7 +1415,7 @@
             filtered.forEach(os => {
                 const card = document.createElement('div');
                 card.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-brand cursor-pointer shadow-sm active:scale-[0.98] transition";
-                card.onclick = () => openOSDetails(os.id);
+                card.onclick = () => openOSDetails(os.dbId);
                 
                 let assignedHtml = '';
                 if (os.assignedTo) {
@@ -1596,7 +1596,14 @@
             e.preventDefault();
             try {
                 const year = new Date().getFullYear();
-                const num = appState.orders.length + 1;
+                let maxNum = 0;
+                appState.orders.forEach(o => {
+                    if (o.id && o.id.startsWith(`OS-${year}`)) {
+                        const n = parseInt(o.id.substring(7), 10);
+                        if (!isNaN(n) && n > maxNum) maxNum = n;
+                    }
+                });
+                const num = maxNum + 1;
                 const newId = `OS-${year}${String(num).padStart(4, '0')}`;
 
                 const newOS = {
@@ -1647,7 +1654,7 @@
             const exactMatch = appState.orders.find(o => o.id.toUpperCase() === query.toUpperCase());
             
             if(exactMatch) {
-                openOSDetails(exactMatch.id);
+                openOSDetails(exactMatch.dbId);
                 document.getElementById('global-search-os').value = '';
             } else {
                 // Navega para a lista geral e aplica o filtro
@@ -1666,8 +1673,8 @@
             }
         }
 
-        function openOSDetails(id) {
-            const os = appState.orders.find(o => o.id === id);
+        function openOSDetails(dbId) {
+            const os = appState.orders.find(o => o.dbId === dbId);
             if(!os) return;
 
             document.getElementById('detail-id').innerText = os.id;
@@ -1853,7 +1860,7 @@
         async function saveOSManagement() {
             const id = document.getElementById('manage-os-id').value;
             const dbId = document.getElementById('manage-os-dbid').value;
-            const osIndex = appState.orders.findIndex(o => o.id === id);
+            const osIndex = appState.orders.findIndex(o => o.dbId === dbId);
             
             if(osIndex > -1 && dbId) {
                 const os = appState.orders[osIndex];
@@ -1896,7 +1903,7 @@
                     showToast('OS Atualizada com sucesso no banco de dados.');
                 }
 
-                openOSDetails(id); 
+                openOSDetails(dbId); 
             }
         }
 
@@ -1916,7 +1923,7 @@
                 });
                 
                 showToast(`Você assumiu a ${id}. Opcional: envie atualização pelo WhatsApp.`);
-                openOSDetails(id);
+                openOSDetails(dbId);
 
                 // Abre o WhatsApp para o solicitante (simulando clique no botão de encaminhar customizado)
                 const os = appState.orders.find(o => o.id === id);
