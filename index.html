@@ -2065,9 +2065,9 @@
                 openOSDetails(dbId);
 
                 // Abre o WhatsApp para o solicitante (simulando clique no botão de encaminhar customizado)
-                const os = appState.orders.find(o => o.id === id);
-                if (os) {
-                    const msg = encodeURIComponent(`Olá ${os.requester},\nSua ordem de serviço *${id}* foi assumida por *${myName}* e está em andamento.`);
+                const osData = appState.orders.find(o => o.id === id);
+                if (osData) {
+                    const msg = encodeURIComponent(`Olá ${osData.requester},\nSua ordem de serviço *${id}* foi assumida por *${myName}* e está em andamento.`);
                     window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
                 }
             } catch(e) {
