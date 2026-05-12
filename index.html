@@ -1288,7 +1288,6 @@
                 let activeCount = 0;
                 let sumGut = 0;
                 let concludedCount = 0;
-                let sumTimeMs = 0;
 
                 techOrders.forEach(o => {
                     const st = o.status ? o.status.toLowerCase() : '';
@@ -1297,11 +1296,6 @@
 
                     if (isConcluido) {
                         concludedCount++;
-                        if (o.startTime && o.endTime) {
-                            const start = new Date(o.startTime).getTime();
-                            const end = new Date(o.endTime).getTime();
-                            sumTimeMs += (end - start);
-                        }
                     } else if (!isCancelado) {
                         activeCount++;
                         if (o.gut) {
@@ -1311,19 +1305,6 @@
                 });
 
                 const avgGut = activeCount > 0 ? (sumGut / activeCount).toFixed(1) : 0;
-                
-                let avgTimeStr = '-';
-                if (concludedCount > 0 && sumTimeMs > 0) {
-                    const avgMs = sumTimeMs / concludedCount;
-                    const hours = avgMs / (1000 * 60 * 60);
-                    if (hours < 1) {
-                        avgTimeStr = Math.round(hours * 60) + ' min';
-                    } else if (hours < 24) {
-                        avgTimeStr = hours.toFixed(1) + ' hrs';
-                    } else {
-                        avgTimeStr = (hours / 24).toFixed(1) + ' dias';
-                    }
-                }
 
                 grid.innerHTML += `
                     <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-brand transition">
@@ -1343,10 +1324,6 @@
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
                                 <span class="block text-2xl font-black text-dark mb-1">${concludedCount}</span>
                                 <span class="text-[10px] font-bold text-gray-500 uppercase">OS Finalizadas</span>
-                            </div>
-                            <div class="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100 flex justify-between items-center">
-                                <span class="text-[10px] font-bold text-gray-500 uppercase">Tempo Méd. de Finalização</span>
-                                <span class="text-sm font-black text-dark">${avgTimeStr}</span>
                             </div>
                         </div>
 
@@ -1765,7 +1742,7 @@
                 else photoContainer.classList.add('hidden');
             }
 
-            const isMaint = appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin';
+            const isMaint = appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader';
             
             // Sempre começa no modo leitura, e permite ir para edição se for manutenção/admin
             document.getElementById('form-manage-os').classList.add('hidden');
@@ -1843,8 +1820,8 @@
 
                 maintUsers.forEach(c => assignSelect.innerHTML += `<option value="${c}" ${os.assignedTo === c ? 'selected' : ''}>${c}</option>`);
 
-                // Apenas o Admin pode trocar o responsável da atividade manualmente
-                assignSelect.disabled = appState.currentUser.role !== 'admin';
+                // Apenas o Admin e o Lider podem trocar o responsável da atividade manualmente
+                assignSelect.disabled = appState.currentUser.role !== 'admin' && appState.currentUser.role !== 'operacional_leader';
 
                 appState.tempItems = [...(os.itemsUsed || [])];
                 renderManageItems();
@@ -1860,8 +1837,10 @@
                 }
                 document.querySelectorAll('.print-logo-src').forEach(img => img.src = appState.logo);
 
-            } else {
-                document.getElementById('print-assigned').innerText = os.assignedTo || 'Aguardando atribuição';
+            }
+            
+            // Popular Modo Leitura para todos os usuários
+            document.getElementById('print-assigned').innerText = os.assignedTo || 'Aguardando atribuição';
                 
                 let timeStr = '';
                 if(os.startTime) timeStr += `Início: ${new Date(os.startTime).toLocaleString('pt-BR')} `;
@@ -1898,8 +1877,18 @@
                 const pHistory = document.getElementById('print-history');
                 if (pHistory) {
                     pHistory.innerHTML = '';
-                    if (os.history && os.history.length > 0) {
-                        [...os.history].reverse().forEach((h, idx) => {
+                    let fullHistory = os.history ? [...os.history] : [];
+                    const hasCreation = fullHistory.some(h => h.description && h.description.includes('OS Registrada'));
+                    if (!hasCreation && os.createdAt) {
+                        fullHistory.unshift({
+                            date: os.createdAt,
+                            author: os.requester || 'Sistema',
+                            description: "OS Registrada"
+                        });
+                    }
+
+                    if (fullHistory.length > 0) {
+                        fullHistory.reverse().forEach((h, idx) => {
                             const isFirst = idx === 0;
                             const dotColor = isFirst ? 'bg-brand border-brand' : 'bg-gray-300 border-white';
                             pHistory.innerHTML += `
