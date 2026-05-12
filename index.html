@@ -326,20 +326,23 @@
 
         <!-- View: Detalhes da OS -->
         <div id="view-os-details" class="view-section hidden p-4 slide-up max-w-3xl mx-auto pb-32">
-            <div class="flex justify-between items-center mb-4 no-print">
-                <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
-                <div class="flex gap-2 flex-wrap justify-end">
-                    <button id="btn-assume-os" onclick="assumeOS()" class="px-3 py-1.5 bg-dark text-brand border border-gray-800 text-xs font-bold rounded shadow-sm hover:bg-gray-800 transition flex items-center gap-1 hidden">
-                        <i class="fas fa-hand-paper"></i> <span class="hidden sm:inline">Assumir OS</span>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 no-print gap-3">
+                <button onclick="navigate('home')" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95 shrink-0"><i class="fas fa-arrow-left"></i></button>
+                <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                    <button id="btn-assume-os" onclick="assumeOS()" class="px-4 py-2 bg-dark text-brand border border-gray-800 text-sm font-bold rounded-lg shadow-sm hover:bg-gray-800 transition flex items-center justify-center gap-2 hidden">
+                        <i class="fas fa-hand-paper"></i> <span>Assumir</span>
                     </button>
-                    <button id="btn-delete-os" onclick="deleteOS()" class="px-3 py-1.5 bg-red-50 text-danger border border-red-200 text-xs font-bold rounded shadow-sm hover:bg-red-100 transition flex items-center gap-1 hidden">
-                        <i class="fas fa-trash-alt"></i> <span class="hidden sm:inline">Excluir</span>
+                    <button id="btn-edit-os" onclick="toggleEditMode()" class="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-sm font-bold rounded-lg shadow-sm hover:bg-blue-100 transition flex items-center justify-center gap-2 hidden">
+                        <i class="fas fa-edit"></i> <span>Editar</span>
                     </button>
-                    <button id="btn-share-whatsapp" onclick="shareWhatsApp()" class="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded shadow-sm hover:bg-green-600 transition flex items-center gap-1">
-                        <i class="fab fa-whatsapp"></i> <span class="hidden sm:inline">Encaminhar</span>
+                    <button id="btn-share-whatsapp" onclick="shareWhatsApp()" class="px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-green-600 transition flex items-center justify-center gap-2">
+                        <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
                     </button>
-                    <button id="btn-print-os" onclick="printDocument('os')" class="px-3 py-1.5 bg-gray-200 text-dark text-xs font-bold rounded shadow-sm hover:bg-gray-300 hidden"><i class="fas fa-print mr-1"></i> Ficha OS</button>
-                    <button id="btn-print-almo" onclick="printDocument('almo')" class="px-3 py-1.5 bg-brand text-dark text-xs font-bold rounded shadow-sm hover:bg-yellow-500 hidden"><i class="fas fa-boxes mr-1"></i> Vale Almoxarifado</button>
+                    <button id="btn-delete-os" onclick="deleteOS()" class="px-4 py-2 bg-red-50 text-danger border border-red-200 text-sm font-bold rounded-lg shadow-sm hover:bg-red-100 transition flex items-center justify-center gap-2 hidden">
+                        <i class="fas fa-trash-alt"></i> <span>Excluir</span>
+                    </button>
+                    <button id="btn-print-os" onclick="printDocument('os')" class="px-4 py-2 bg-gray-200 text-dark text-sm font-bold rounded-lg shadow-sm hover:bg-gray-300 hidden col-span-2 sm:col-span-1"><i class="fas fa-print mr-1"></i> Ficha OS</button>
+                    <button id="btn-print-almo" onclick="printDocument('almo')" class="px-4 py-2 bg-brand text-dark text-sm font-bold rounded-lg shadow-sm hover:bg-yellow-500 hidden col-span-2 sm:col-span-1"><i class="fas fa-boxes mr-1"></i> Vale Almo</button>
                 </div>
             </div>
 
@@ -1133,16 +1136,22 @@
             let totalLivres = 0;
 
             appState.orders.forEach(o => {
-                if (['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status)) totalPendentes++;
-                else if (['Em Diagnóstico', 'Em Execução'].includes(o.status)) totalAndamento++;
-                else if (o.status === 'Concluída') totalConcluidas++;
+                const statusL = o.status ? o.status.toLowerCase() : '';
+                const isConcluido = statusL.includes('concluí') || statusL.includes('conclui');
+                const isCancelado = statusL.includes('cancelad');
+                const isAndamento = ['em diagnóstico', 'em execução'].includes(statusL);
+
+                if (isConcluido) totalConcluidas++;
+                else if (isCancelado) { /* do nothing */ }
+                else if (isAndamento) totalAndamento++;
+                else totalPendentes++;
                 
-                if (o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada') {
+                if (o.gut && o.gut.u >= 4 && !isConcluido && !isCancelado) {
                     totalUrgentes++;
                 }
 
                 // Contagens para equipe de manutenção
-                if (o.status !== 'Concluída' && o.status !== 'Cancelada') {
+                if (!isConcluido && !isCancelado) {
                     if (appState.currentUser && o.assignedTo === appState.currentUser.name) {
                         totalMinhas++;
                     }
@@ -1179,8 +1188,11 @@
             }
 
             appState.sectors.forEach(s => {
-                const pendentes = appState.orders.filter(o => o.sector === s.name && ['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status)).length;
-                const andamento = appState.orders.filter(o => o.sector === s.name && ['Em Diagnóstico', 'Em Execução'].includes(o.status)).length;
+                const pendentes = appState.orders.filter(o => {
+                    const st = o.status ? o.status.toLowerCase() : '';
+                    return o.sector === s.name && !st.includes('concluí') && !st.includes('conclui') && !st.includes('cancelad') && !['em diagnóstico', 'em execução'].includes(st);
+                }).length;
+                const andamento = appState.orders.filter(o => o.sector === s.name && ['em diagnóstico', 'em execução'].includes(o.status ? o.status.toLowerCase() : '')).length;
                 
                 let statsHtml = '';
                 if(pendentes === 0 && andamento === 0) {
@@ -1246,14 +1258,18 @@
                 let sumTimeMs = 0;
 
                 techOrders.forEach(o => {
-                    if (o.status === 'Concluída') {
+                    const st = o.status ? o.status.toLowerCase() : '';
+                    const isConcluido = st.includes('concluí') || st.includes('conclui');
+                    const isCancelado = st.includes('cancelad');
+
+                    if (isConcluido) {
                         concludedCount++;
                         if (o.startTime && o.endTime) {
                             const start = new Date(o.startTime).getTime();
                             const end = new Date(o.endTime).getTime();
                             sumTimeMs += (end - start);
                         }
-                    } else if (o.status !== 'Cancelada') {
+                    } else if (!isCancelado) {
                         activeCount++;
                         if (o.gut) {
                             sumGut += (parseInt(o.gut.g||0) * parseInt(o.gut.u||0) * parseInt(o.gut.t||0));
@@ -1366,8 +1382,12 @@
 
             let filtered = [...appState.orders];
             
+            const isOStatusConcluido = (st) => st && (st.toLowerCase().includes('concluí') || st.toLowerCase().includes('conclui'));
+            const isOStatusCancelado = (st) => st && st.toLowerCase().includes('cancelad');
+            const isOStatusAndamento = (st) => st && ['em diagnóstico', 'em execução'].includes(st.toLowerCase());
+
             if(isConcluidas) {
-                filtered = filtered.filter(o => o.status === 'Concluída');
+                filtered = filtered.filter(o => isOStatusConcluido(o.status));
                 const fSector = document.getElementById('filter-c-sector').value;
                 if(fSector) filtered = filtered.filter(o => o.sector === fSector);
                 
@@ -1376,20 +1396,20 @@
                     filtered = filtered.filter(o => o.createdAt.startsWith(fDate));
                 }
             } else if(isUrgentes) {
-                filtered = filtered.filter(o => o.gut && o.gut.u >= 4 && o.status !== 'Concluída' && o.status !== 'Cancelada');
+                filtered = filtered.filter(o => o.gut && o.gut.u >= 4 && !isOStatusConcluido(o.status) && !isOStatusCancelado(o.status));
                 filtered.sort((a,b) => b.gut.score - a.gut.score); // order by score desc
             } else if(isPendentes) {
-                filtered = filtered.filter(o => ['Solicitada', 'Aguardando Aprovação', 'Aguardando Peças'].includes(o.status));
+                filtered = filtered.filter(o => !isOStatusConcluido(o.status) && !isOStatusCancelado(o.status) && !isOStatusAndamento(o.status));
             } else if(isAndamento) {
-                filtered = filtered.filter(o => ['Em Diagnóstico', 'Em Execução'].includes(o.status));
+                filtered = filtered.filter(o => isOStatusAndamento(o.status));
             } else if(isMinhas) {
-                filtered = filtered.filter(o => o.assignedTo === appState.currentUser.name && o.status !== 'Concluída' && o.status !== 'Cancelada');
+                filtered = filtered.filter(o => o.assignedTo === appState.currentUser.name && !isOStatusConcluido(o.status) && !isOStatusCancelado(o.status));
             } else if(isLivres) {
-                filtered = filtered.filter(o => !o.assignedTo && o.status !== 'Concluída' && o.status !== 'Cancelada');
+                filtered = filtered.filter(o => !o.assignedTo && !isOStatusConcluido(o.status) && !isOStatusCancelado(o.status));
             } else if(isTech) {
                 filtered = filtered.filter(o => o.assignedTo === targetTech);
             } else if(!isMyHistory) {
-                filtered = filtered.filter(o => o.sector === appState.currentListSector && o.status !== 'Concluída');
+                filtered = filtered.filter(o => o.sector === appState.currentListSector && !isOStatusConcluido(o.status) && !isOStatusCancelado(o.status));
             }
 
             // A ordenação padrão (mais recente primeiro) se não for urgentes que usa score
@@ -1622,21 +1642,8 @@
                 await addDoc(getOrdersCol(), newOS);
 
                 e.target.reset();
-                showToast("Ocorrência registrada! Redirecionando para o WhatsApp...");
-                
-                const dataFormatada = new Date().toLocaleDateString('pt-BR');
-                let urgencyEmoji = newOS.gut.u >= 4 ? ' 🚨🚨 URGENTE 🚨🚨' : '';
-                let mensagem = `🚨 *Nova OS Solicitada*${urgencyEmoji}\n\n`;
-                mensagem += `Foi aberta uma nova ordem de serviço no setor *${newOS.sector}*, por *${newOS.requester}*, na data *${dataFormatada}*.\n\n`;
-                mensagem += `*Número da OS:* ${newOS.id}\n`;
-                if(newOS.equipment) mensagem += `*Equipamento:* ${newOS.equipment}\n`;
-                mensagem += `*Pontuação GUT:* ${newOS.gut.score} (G:${newOS.gut.g} U:${newOS.gut.u} T:${newOS.gut.t})\n\n`;
-                mensagem += `*Descrição do Problema:*\n${newOS.description}\n`;
-                const appUrl = window.location.href.split('#')[0];
-                mensagem += `\n_Para atender ou ver detalhes, acesse o sistema:_\n👉 ${appUrl}`;
-
-                const textoCodificado = encodeURIComponent(mensagem);
-                window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
+                e.target.reset();
+                showToast("Ocorrência registrada com sucesso!");
 
                 setTimeout(() => navigate('home'), 1000);
 
@@ -1721,8 +1728,20 @@
             }
 
             const isMaint = appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin';
-            document.getElementById('form-manage-os').classList.toggle('hidden', !isMaint);
-            document.getElementById('readonly-management').classList.toggle('hidden', isMaint);
+            
+            // Sempre começa no modo leitura, e permite ir para edição se for manutenção/admin
+            document.getElementById('form-manage-os').classList.add('hidden');
+            document.getElementById('readonly-management').classList.remove('hidden');
+            
+            const btnEdit = document.getElementById('btn-edit-os');
+            if (btnEdit) {
+                btnEdit.innerHTML = '<i class="fas fa-edit"></i> <span>Editar</span>';
+                if (isMaint && os.status !== 'Cancelada') {
+                    btnEdit.classList.remove('hidden');
+                } else {
+                    btnEdit.classList.add('hidden');
+                }
+            }
             
             document.getElementById('btn-print-os').classList.toggle('hidden', !isMaint);
             document.getElementById('btn-delete-os').classList.toggle('hidden', appState.currentUser.role !== 'admin'); 
@@ -1750,7 +1769,8 @@
                 // Add listener to show/hide resolution fields
                 statusSelect.onchange = function() {
                     const resFields = document.getElementById('manage-resolution-fields');
-                    if (this.value === 'Concluída') {
+                    const st = this.value.toLowerCase();
+                    if (st.includes('concluí') || st.includes('conclui')) {
                         resFields.classList.remove('hidden');
                     } else {
                         resFields.classList.add('hidden');
@@ -1841,6 +1861,21 @@
             navigate('os-details');
         }
 
+        function toggleEditMode() {
+            const formManage = document.getElementById('form-manage-os');
+            const readonlyManage = document.getElementById('readonly-management');
+            
+            if (formManage.classList.contains('hidden')) {
+                formManage.classList.remove('hidden');
+                readonlyManage.classList.add('hidden');
+                document.getElementById('btn-edit-os').innerHTML = '<i class="fas fa-eye"></i> <span>Ver Modo Leitura</span>';
+            } else {
+                formManage.classList.add('hidden');
+                readonlyManage.classList.remove('hidden');
+                document.getElementById('btn-edit-os').innerHTML = '<i class="fas fa-edit"></i> <span>Editar</span>';
+            }
+        }
+
         function renderManageItems() {
             const list = document.getElementById('manage-items-list');
             list.innerHTML = '';
@@ -1881,11 +1916,21 @@
                     gut: calculateGUT('manage'),
                     itemsUsed: [...appState.tempItems],
                     deadline: isoDeadline
+                let updateData = {
+                    status: newStatus,
+                    assignedTo: document.getElementById('manage-assigned').value,
+                    diagnostic: document.getElementById('manage-diagnostic').value,
+                    gut: calculateGUT('manage'),
+                    itemsUsed: [...appState.tempItems],
+                    deadline: isoDeadline
                 };
 
+                const isNewConcluido = newStatus.toLowerCase().includes('concluí') || newStatus.toLowerCase().includes('conclui');
+                const isOldConcluido = oldStatus && (oldStatus.toLowerCase().includes('concluí') || oldStatus.toLowerCase().includes('conclui'));
+
                 // Se mudou para Concluída, grava o endTime e os campos extras
-                if (newStatus === 'Concluída') {
-                    if (oldStatus !== 'Concluída') {
+                if (isNewConcluido) {
+                    if (!isOldConcluido) {
                         updateData.endTime = new Date().toISOString();
                     }
                     updateData.cause = document.getElementById('manage-cause').value;
@@ -2392,6 +2437,7 @@
         window.installApp = installApp;
         window.assumeOS = assumeOS;
         window.deleteOS = deleteOS;
+        window.toggleEditMode = toggleEditMode;
 
         window.openPhotoModal = openPhotoModal;
         window.closePhotoModal = closePhotoModal;
