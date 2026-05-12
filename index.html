@@ -140,7 +140,7 @@
     <main id="main-content" class="flex-1 overflow-y-auto hidden relative bg-grayBg">
         
         <!-- View: Home -->
-        <div id="view-home" class="view-section hidden pb-32">
+        <div id="view-home" class="view-section hidden pb-40">
             <!-- Header com Busca -->
             <div class="bg-brand px-6 pb-8 pt-6 rounded-b-[2rem] shadow-sm mb-6 relative z-10">
                 <h2 class="text-white font-black text-xl mb-4 drop-shadow-sm">Olá, o que você procura?</h2>
@@ -232,7 +232,7 @@
         </div>
 
         <!-- View: Lista de OS do Setor -->
-        <div id="view-sector-os" class="view-section hidden p-6 pb-32 max-w-4xl mx-auto slide-up">
+        <div id="view-sector-os" class="view-section hidden p-6 pb-40 max-w-4xl mx-auto slide-up">
             <div class="flex items-center gap-3 mb-6">
                 <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
                 <h2 class="text-xl font-bold text-dark uppercase" id="list-sector-title">SETOR</h2>
@@ -262,7 +262,7 @@
         </div>
 
         <!-- View: Nova OS -->
-        <div id="view-new-os" class="view-section hidden p-6 slide-up max-w-2xl mx-auto w-full pb-32">
+        <div id="view-new-os" class="view-section hidden p-6 slide-up max-w-2xl mx-auto w-full pb-40">
             <div class="flex items-center gap-3 mb-6">
                 <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
                 <h2 class="text-xl font-bold text-dark">Registrar Ocorrência</h2>
@@ -325,7 +325,7 @@
         </div>
 
         <!-- View: Detalhes da OS -->
-        <div id="view-os-details" class="view-section hidden p-4 slide-up max-w-3xl mx-auto pb-32">
+        <div id="view-os-details" class="view-section hidden p-4 slide-up max-w-3xl mx-auto pb-40">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 no-print gap-3">
                 <button onclick="navigate('home')" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95 shrink-0"><i class="fas fa-arrow-left"></i></button>
                 <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
@@ -528,7 +528,7 @@
         </div>
 
             <!-- View: Analytics (Painel de Gestão) -->
-            <div id="view-analytics" class="view-section hidden p-6 pb-32 max-w-5xl mx-auto slide-up">
+            <div id="view-analytics" class="view-section hidden p-6 pb-40 max-w-5xl mx-auto slide-up">
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
                     <h2 class="text-xl font-bold text-dark uppercase">Painel de Gestão</h2>
@@ -542,7 +542,7 @@
             </div>
 
         <!-- View: Settings -->
-        <div id="view-settings" class="view-section hidden p-6 max-w-md mx-auto slide-up pb-32">
+        <div id="view-settings" class="view-section hidden p-6 max-w-md mx-auto slide-up pb-40">
             <h2 class="text-xl font-bold text-dark mb-6">Configurações</h2>
             <div class="space-y-4">
                 
@@ -1831,9 +1831,9 @@
 
                 const assignSelect = document.getElementById('manage-assigned');
                 assignSelect.innerHTML = '<option value="">Nenhum</option>';
-                // Busca dinamicamente os usuários com role 'maintenance'
+                // Busca dinamicamente os usuários com role 'maintenance' e 'operacional_leader'
                 const maintUsers = (appState.registeredUsers || [])
-                    .filter(u => u.role === 'maintenance')
+                    .filter(u => u.role === 'maintenance' || u.role === 'operacional_leader')
                     .map(u => u.name);
                 
                 // Se a OS já tem alguém atribuído que não está mais na lista ou foi excluido, adiciona-o para não quebrar a UI
