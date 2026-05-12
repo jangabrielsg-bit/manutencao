@@ -143,7 +143,7 @@
         <div id="view-home" class="view-section hidden pb-40">
             <!-- Header com Busca -->
             <div class="bg-brand px-6 pb-8 pt-6 rounded-b-[2rem] shadow-sm mb-6 relative z-10">
-                <h2 class="text-white font-black text-xl mb-4 drop-shadow-sm">Olá, o que você procura?</h2>
+                <h2 id="home-greeting" class="text-white font-black text-xl mb-4 drop-shadow-sm">Olá, o que você procura?</h2>
                 <div class="relative w-full">
                     <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
                     <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar OS, equipamento..." class="w-full pl-11 pr-12 py-3.5 bg-white rounded-xl shadow-md border-none focus:ring-2 focus:ring-yellow-500 text-sm outline-none font-medium transition-all">
@@ -951,14 +951,12 @@
             document.getElementById('form-login-credentials').reset();
         }
 
-        async function loginAnonymous() {
-            try {
-                showToast("Entrando como solicitante...");
-                await signInAnonymously(auth);
-            } catch (err) {
-                console.error(err);
-                showToast("Erro ao entrar. Verifique sua conexão.");
-            }
+        function loginAnonymous() {
+            showToast("Entrando como solicitante...");
+            window.isCustomLogin = true; // Evita conflitos com onAuthStateChanged
+            signInAnonymously(auth).catch(err => console.warn("Erro silencioso ao logar anônimo:", err));
+            appState.currentUser = { role: 'requester', uid: 'anon-' + Date.now(), name: 'Anônimo' };
+            finalizeLogin('requester');
         }
 
         async function handleLoginCredentials(e) {
@@ -1157,6 +1155,12 @@
         }
 
         function renderHome() {
+            const greeting = document.getElementById('home-greeting');
+            if (greeting && appState.currentUser) {
+                const firstName = appState.currentUser.name ? appState.currentUser.name.split(' ')[0] : '';
+                greeting.innerText = (firstName && firstName !== 'Anônimo') ? `Olá ${firstName}, o que você procura?` : 'Olá, o que você procura?';
+            }
+
             const grid = document.getElementById('sector-grid');
             if(!grid) return;
             grid.innerHTML = '';
