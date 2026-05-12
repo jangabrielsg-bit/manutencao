@@ -693,6 +693,19 @@
                         }
                     }
                     navigate('home');
+                    
+                    // Sincroniza em segundo plano para garantir que o papel/role atualizado pelo admin seja aplicado
+                    if (appState.currentUser.uid && appState.currentUser.uid !== 'local-admin-mestre') {
+                        getDoc(doc(db, "users", appState.currentUser.uid)).then(userDoc => {
+                            if (userDoc.exists()) {
+                                const freshData = userDoc.data();
+                                if (freshData.role !== appState.currentUser.role) {
+                                    appState.currentUser = { ...appState.currentUser, ...freshData };
+                                    finalizeLogin(appState.currentUser.role);
+                                }
+                            }
+                        }).catch(e => console.log("Background auth sync err:", e));
+                    }
                 } catch (e) {
                     console.error("Erro ao carregar sessão salva:", e);
                     localStorage.removeItem('manut_session');
@@ -1909,13 +1922,6 @@
                     isoDeadline = d.toISOString();
                 }
 
-                let updateData = {
-                    status: newStatus,
-                    assignedTo: document.getElementById('manage-assigned').value,
-                    diagnostic: document.getElementById('manage-diagnostic').value,
-                    gut: calculateGUT('manage'),
-                    itemsUsed: [...appState.tempItems],
-                    deadline: isoDeadline
                 let updateData = {
                     status: newStatus,
                     assignedTo: document.getElementById('manage-assigned').value,
