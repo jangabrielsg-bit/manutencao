@@ -600,6 +600,14 @@
                     </div>
                     <ul id="list-settings-statuses" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
                 </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-sync-section">
+                    <h3 class="font-bold text-sm mb-2 text-dark"><i class="fas fa-sync text-brand mr-1"></i> Sincronização</h3>
+                    <p class="text-xs text-gray-500 mb-4">Envie todas as ordens de serviço existentes no banco para a sua planilha do Google.</p>
+                    <button onclick="syncAllToSheets()" class="w-full bg-green-500 text-white font-bold py-2.5 rounded-lg shadow-sm active:scale-95 transition flex items-center justify-center gap-2 border border-green-600">
+                        <i class="fas fa-file-excel"></i> Sincronizar com Planilha
+                    </button>
+                </div>
             </div>
         </div>
 
