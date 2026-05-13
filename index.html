@@ -1675,7 +1675,9 @@
                             equipment: newOS.equipment,
                             description: newOS.description,
                             status: newOS.status,
-                            gutScore: newOS.gut ? newOS.gut.score : ""
+                            gutScore: newOS.gut ? newOS.gut.score : "",
+                            assignedTo: "",
+                            deadline: ""
                         })
                     }).catch(err => console.warn("Erro ao enviar para Google Sheets:", err));
                 } catch(sheetErr) {
@@ -2040,6 +2042,31 @@
 
                 await updateDoc(getOrderDoc(dbId), updateData);
 
+                // Integração com Google Sheets (Webhook) para atualização
+                try {
+                    const webhookUrl = "https://script.google.com/macros/s/AKfycbyUpz5XCf4EsWJ8IuvKKbNAdX5B5W0laNczhUvPzRXDf-lBapqR_EG8a7naTOsvxQ9Thg/exec";
+                    const currentOs = appState.orders[osIndex];
+                    fetch(webhookUrl, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: currentOs.id,
+                            createdAt: currentOs.createdAt ? new Date(currentOs.createdAt).toLocaleString('pt-BR') : "",
+                            requester: currentOs.requester || "",
+                            sector: currentOs.sector || "",
+                            equipment: currentOs.equipment || "",
+                            description: currentOs.description || "",
+                            status: currentOs.status || "",
+                            gutScore: currentOs.gut ? currentOs.gut.score : "",
+                            assignedTo: currentOs.assignedTo || "",
+                            deadline: currentOs.deadline ? new Date(currentOs.deadline).toLocaleDateString('pt-BR') : ""
+                        })
+                    }).catch(err => console.warn("Erro ao atualizar Sheets:", err));
+                } catch(sheetErr) {
+                    console.warn("Erro na integração com Sheets:", sheetErr);
+                }
+
                 if(oldStatus !== newStatus) {
                     showToast(`Status atualizado para '${newStatus}'. Pode avisar o solicitante via WhatsApp.`);
                 } else {
@@ -2073,6 +2100,30 @@
                     startTime: new Date().toISOString(),
                     history: history
                 });
+                
+                // Integração com Google Sheets (Webhook) para atualização de atribuição
+                try {
+                    const webhookUrl = "https://script.google.com/macros/s/AKfycbyUpz5XCf4EsWJ8IuvKKbNAdX5B5W0laNczhUvPzRXDf-lBapqR_EG8a7naTOsvxQ9Thg/exec";
+                    fetch(webhookUrl, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: os.id,
+                            createdAt: os.createdAt ? new Date(os.createdAt).toLocaleString('pt-BR') : "",
+                            requester: os.requester || "",
+                            sector: os.sector || "",
+                            equipment: os.equipment || "",
+                            description: os.description || "",
+                            status: os.status || "",
+                            gutScore: os.gut ? os.gut.score : "",
+                            assignedTo: myName,
+                            deadline: os.deadline ? new Date(os.deadline).toLocaleDateString('pt-BR') : ""
+                        })
+                    }).catch(err => console.warn("Erro ao atualizar Sheets:", err));
+                } catch(sheetErr) {
+                    console.warn("Erro na integração com Sheets:", sheetErr);
+                }
                 
                 showToast(`Você assumiu a ${id}. Opcional: envie atualização pelo WhatsApp.`);
                 openOSDetails(dbId);
