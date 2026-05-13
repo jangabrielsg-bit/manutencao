@@ -2608,6 +2608,56 @@
 
         window.openPhotoModal = openPhotoModal;
         window.closePhotoModal = closePhotoModal;
+
+        async function syncAllToSheets() {
+            if(!confirm("Deseja sincronizar todas as ordens de serviço existentes para o Google Sheets?\nIsso pode demorar alguns segundos dependendo da quantidade de dados.")) return;
+            
+            const btn = document.querySelector('button[onclick="syncAllToSheets()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            
+            showToast("Iniciando sincronização...");
+            const webhookUrl = "https://script.google.com/macros/s/AKfycbyUpz5XCf4EsWJ8IuvKKbNAdX5B5W0laNczhUvPzRXDf-lBapqR_EG8a7naTOsvxQ9Thg/exec";
+            
+            let sucessos = 0;
+            // Envia uma a uma com um pequeno delay para não sobrecarregar o Google Apps Script
+            for (let i = 0; i < appState.orders.length; i++) {
+                const os = appState.orders[i];
+                try {
+                    await fetch(webhookUrl, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: os.id,
+                            createdAt: os.createdAt ? new Date(os.createdAt).toLocaleString('pt-BR') : "",
+                            requester: os.requester || "",
+                            sector: os.sector || "",
+                            equipment: os.equipment || "",
+                            description: os.description || "",
+                            status: os.status || "",
+                            gutScore: os.gut ? os.gut.score : "",
+                            assignedTo: os.assignedTo || "",
+                            deadline: os.deadline ? new Date(os.deadline).toLocaleDateString('pt-BR') : ""
+                        })
+                    });
+                    sucessos++;
+                    // Delay de 200ms
+                    await new Promise(r => setTimeout(r, 200));
+                } catch(e) {
+                    console.warn("Erro ao enviar OS " + os.id, e);
+                }
+            }
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-70');
+            showToast(`Sincronização concluída! ${sucessos} OS enviadas.`);
+        }
+        window.syncAllToSheets = syncAllToSheets;
+
     </script>
 </body>
 </html>
