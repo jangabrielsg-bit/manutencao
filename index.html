@@ -1660,7 +1660,28 @@
 
                 await addDoc(getOrdersCol(), newOS);
 
-                e.target.reset();
+                // Integração com Google Sheets (Webhook)
+                try {
+                    const webhookUrl = "https://script.google.com/macros/s/AKfycbyUpz5XCf4EsWJ8IuvKKbNAdX5B5W0laNczhUvPzRXDf-lBapqR_EG8a7naTOsvxQ9Thg/exec";
+                    fetch(webhookUrl, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: newOS.id,
+                            createdAt: new Date(newOS.createdAt).toLocaleString('pt-BR'),
+                            requester: newOS.requester,
+                            sector: newOS.sector,
+                            equipment: newOS.equipment,
+                            description: newOS.description,
+                            status: newOS.status,
+                            gutScore: newOS.gut ? newOS.gut.score : ""
+                        })
+                    }).catch(err => console.warn("Erro ao enviar para Google Sheets:", err));
+                } catch(sheetErr) {
+                    console.warn("Erro na integração com Sheets:", sheetErr);
+                }
+
                 e.target.reset();
                 showToast("Ocorrência registrada com sucesso!");
 
