@@ -51,6 +51,7 @@
             body.print-almo #print-area-almo { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; background: white;}
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
 
@@ -125,9 +126,9 @@
                     <i class="fas fa-clock"></i>
                     <span id="badge-my-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
                 </button>
-                <button onclick="openUrgentOS()" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
-                    <i class="fas fa-bell text-red-600"></i>
-                    <span id="badge-urgent-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
+                <button onclick="navigate('machines')" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
+                    <i class="fas fa-bell text-dark"></i>
+                    <span id="badge-pm-alerts" class="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-[9px] text-white font-bold rounded-full hidden border border-brand flex items-center justify-center"></span>
                 </button>
                 <button id="btn-nav-analytics" onclick="navigate('analytics')" class="hidden w-8 h-8 rounded-full border border-dark/20 items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-chart-bar"></i></button>
                 <button onclick="navigate('settings')" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition"><i class="fas fa-cog"></i></button>
@@ -242,6 +243,18 @@
                 <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
                 <input type="text" id="search-os" oninput="renderSectorList()" placeholder="Buscar por descrição ou número..." class="w-full pl-10 pr-4 py-3 bg-white rounded-xl shadow-sm border-none focus:ring-2 focus:ring-brand text-sm outline-none">
             </div>
+
+            <div id="sector-machines-wrapper" class="hidden mb-6">
+                <h3 class="text-xs font-bold text-gray-400 uppercase mb-2"><i class="fas fa-cogs mr-1"></i> Equipamentos do Setor</h3>
+                <div id="sector-machines-container" class="flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <style>
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            </style>
 
             <div id="concluidas-filters" class="hidden mb-6 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
                 <h3 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Filtros e Organização</h3>
@@ -397,9 +410,15 @@
                                     <select id="manage-assigned" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none"></select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Prazo Estimado</label>
-                                    <input type="date" id="manage-deadline" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Equipamento Vinculado</label>
+                                    <select id="manage-equipment" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
+                                        <option value="">Nenhum</option>
+                                    </select>
                                 </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1 mt-2">Prazo Estimado</label>
+                                <input type="date" id="manage-deadline" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
                             </div>
 
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -536,10 +555,119 @@
                 
                 <p class="text-sm text-gray-500 mb-6">Indicadores de desempenho e carga de trabalho da equipe de manutenção.</p>
 
-                <div id="analytics-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div id="analytics-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                     <!-- Gerado via JS -->
                 </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-6">
+                    <h3 class="font-bold text-dark text-sm uppercase tracking-wider mb-4 border-b pb-2"><i class="fas fa-chart-pie text-brand mr-2"></i> Análise de Causas (Pareto)</h3>
+                    <div class="w-full h-64"><canvas id="pareto-causes"></canvas></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 class="font-bold text-dark text-sm uppercase tracking-wider mb-4 border-b pb-2">Equipamentos Críticos</h3>
+                        <div class="w-full h-56"><canvas id="pareto-equipment"></canvas></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 class="font-bold text-dark text-sm uppercase tracking-wider mb-4 border-b pb-2">Setores com mais OSs</h3>
+                        <div class="w-full h-56"><canvas id="pareto-sectors"></canvas></div>
+                    </div>
+                </div>
             </div>
+
+        <!-- View: Máquinas e Preventivas -->
+        <div id="view-machines" class="view-section hidden p-6 pb-40 max-w-5xl mx-auto slide-up">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-dark uppercase">Equipamentos</h2>
+                </div>
+                <button id="btn-add-machine" onclick="openAddMachineModal()" class="hidden bg-dark text-brand font-bold py-2 px-4 rounded-lg shadow-sm active:scale-95 transition items-center gap-2 text-sm">
+                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Novo Equipamento</span>
+                </button>
+            </div>
+            
+            <div class="relative w-full mb-6">
+                <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                <input type="text" id="search-machine" oninput="renderMachinesList()" placeholder="Buscar por nome ou patrimônio..." class="w-full pl-10 pr-4 py-3 bg-white rounded-xl shadow-sm border-none focus:ring-2 focus:ring-brand text-sm outline-none">
+            </div>
+
+            <div id="machines-list-container" class="space-y-3">
+                <!-- Gerado via JS -->
+            </div>
+        </div>
+
+        <!-- Modal Cadastrar Máquina -->
+        <div id="modal-add-machine" class="fixed inset-0 bg-black/50 z-[60] hidden flex-col items-center justify-center p-4">
+            <div class="bg-white w-full max-w-md rounded-xl shadow-xl overflow-hidden slide-up">
+                <div class="bg-dark p-4 flex justify-between items-center text-brand">
+                    <h3 class="font-bold uppercase">Cadastrar Equipamento</h3>
+                    <button type="button" onclick="closeAddMachineModal()" class="text-white hover:text-brand"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="form-new-machine" onsubmit="saveMachine(event)" class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Nome do Equipamento *</label>
+                        <input type="text" id="new-mach-name" required class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Patrimônio</label>
+                            <input type="text" id="new-mach-patrimony" class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Setor *</label>
+                            <select id="new-mach-sector" required class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand"></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Intervalo Preventiva (Dias) *</label>
+                            <input type="number" id="new-mach-interval" required min="1" value="30" class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Última Preventiva</label>
+                            <input type="date" id="new-mach-lastpm" class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-brand text-dark font-bold py-3 rounded-lg shadow-sm active:scale-95 transition mt-2">Salvar Equipamento</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Detalhes Máquina -->
+        <div id="modal-machine-details" class="fixed inset-0 bg-black/50 z-[60] hidden flex-col items-center justify-end sm:justify-center p-0 sm:p-4">
+            <div class="bg-white w-full max-w-xl rounded-t-2xl sm:rounded-xl shadow-xl overflow-hidden slide-up h-[85vh] sm:h-[80vh] flex flex-col">
+                <div class="bg-dark p-4 flex justify-between items-center text-brand shrink-0">
+                    <div>
+                        <h3 class="font-bold uppercase" id="mach-detail-name">Máquina</h3>
+                        <p class="text-[10px] text-white/70" id="mach-detail-patrimony">Patrimônio</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-delete-machine" type="button" onclick="deleteMachine()" class="text-red-500 hover:text-red-400 w-8 h-8 flex items-center justify-center hidden"><i class="fas fa-trash text-lg"></i></button>
+                        <button type="button" onclick="closeMachineDetails()" class="text-white hover:text-brand w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-xl"></i></button>
+                    </div>
+                </div>
+                <div class="p-5 overflow-y-auto flex-1 bg-grayBg">
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <div>
+                                <span class="text-xs text-gray-500 font-bold block uppercase">Próxima Preventiva</span>
+                                <span class="text-sm font-black" id="mach-detail-nextpm">--/--/----</span>
+                            </div>
+                            <button onclick="registerPM()" class="bg-green-500 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm hover:bg-green-600 transition flex items-center gap-2">
+                                <i class="fas fa-tools"></i> Registrar Preventiva
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-gray-400">A rotina de preventiva zera o contador de dias para a próxima manutenção (Intervalo atual: <span id="mach-detail-interval"></span> dias).</p>
+                    </div>
+
+                    <h4 class="text-sm font-bold text-dark uppercase mb-3"><i class="fas fa-history text-brand mr-1"></i> Histórico de OSs Vinculadas</h4>
+                    <div id="mach-history-container" class="space-y-3">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- View: Settings -->
         <div id="view-settings" class="view-section hidden p-6 max-w-md mx-auto slide-up pb-40">
@@ -668,6 +796,7 @@
             collaborators: [],
             statuses: [],
             orders: [],
+            machines: [],
             tempItems: [],
             newOsPhotos: [],
             resolutionPhotos: [],
@@ -821,6 +950,14 @@
             }, (err) => {
                 console.warn("Erro ao ler users (Pode ser esperado se for solicitante anônimo)", err.message);
             });
+
+            // Listener de Máquinas
+            onSnapshot(collection(db, "machines"), (snapshot) => {
+                appState.machines = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
+                if(typeof updatePMAlerts === 'function') updatePMAlerts();
+                if(currentViewId === 'machines' && typeof renderMachinesList === 'function') renderMachinesList();
+                if(currentViewId === 'os-details' && typeof populateEquipmentSelect === 'function') populateEquipmentSelect();
+            }, (err) => console.warn("Erro ao ler máquinas", err.message));
         }
 
         // Inicia a aplicação chamando a função
@@ -1122,6 +1259,16 @@
             if(viewId === 'analytics') {
                 renderAnalytics();
             }
+            if(viewId === 'machines') {
+                renderMachinesList();
+                if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
+                    document.getElementById('btn-add-machine').classList.remove('hidden');
+                    document.getElementById('btn-add-machine').classList.add('flex');
+                } else {
+                    document.getElementById('btn-add-machine').classList.add('hidden');
+                    document.getElementById('btn-add-machine').classList.remove('flex');
+                }
+            }
 
             currentViewId = viewId;
 
@@ -1343,6 +1490,8 @@
                     </div>
                 `;
             });
+
+            setTimeout(drawParetoCharts, 200);
         }
 
         function openUrgentOS() {
@@ -1400,6 +1549,49 @@
                 else if (isLivres) document.getElementById('list-sector-title').innerText = "Atividades Livres";
                 else if (isTech) document.getElementById('list-sector-title').innerText = "Atividades: " + targetTech;
                 else document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
+            }
+
+            // EXIBIÇÃO DOS EQUIPAMENTOS DO SETOR (CARROSSEL HORIZONTAL)
+            const machWrapper = document.getElementById('sector-machines-wrapper');
+            const machContainer = document.getElementById('sector-machines-container');
+            if (machWrapper && machContainer) {
+                const isSpecificSector = !isConcluidas && !isUrgentes && !isPendentes && !isAndamento && !isMinhas && !isLivres && !isTech && !isMyHistory;
+                
+                if (isSpecificSector) {
+                    const sectorMachines = appState.machines.filter(m => m.sector === appState.currentListSector);
+                    if (sectorMachines.length > 0) {
+                        machWrapper.classList.remove('hidden');
+                        machContainer.innerHTML = '';
+                        const now = new Date();
+                        sectorMachines.forEach(m => {
+                            let statusColor = 'bg-green-100 text-green-700 border-green-200';
+                            let isOverdue = false;
+                            if (!m.lastPmDate) {
+                                statusColor = 'bg-red-100 text-red-700 border-red-200';
+                                isOverdue = true;
+                            } else {
+                                const lastPm = new Date(m.lastPmDate + 'T00:00:00');
+                                const diffTime = Math.abs(now - lastPm);
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                const remaining = (m.pmInterval || 30) - diffDays;
+                                if (remaining < 0) { statusColor = 'bg-red-100 text-red-700 border-red-200'; isOverdue = true; }
+                                else if (remaining <= 5) statusColor = 'bg-orange-100 text-orange-700 border-orange-200';
+                            }
+
+                            machContainer.innerHTML += `
+                                <div onclick="openMachineDetails('${m.dbId}')" class="shrink-0 w-48 bg-white p-3 rounded-xl border ${isOverdue ? 'border-red-300' : 'border-gray-200'} shadow-sm cursor-pointer hover:shadow-md transition">
+                                    <h4 class="font-bold text-dark text-xs truncate uppercase">${m.name}</h4>
+                                    <p class="text-[9px] text-gray-500 truncate mb-2">Pat: ${m.patrimony || 'N/A'}</p>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${statusColor}">${isOverdue ? 'Atrasada' : 'No Prazo'}</span>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        machWrapper.classList.add('hidden');
+                    }
+                } else {
+                    machWrapper.classList.add('hidden');
+                }
             }
 
             let filtered = [...appState.orders];
@@ -2023,6 +2215,9 @@
                     }
                 }
 
+                const equipSelect = document.getElementById('manage-equipment');
+                const linkedMachineId = equipSelect ? equipSelect.value : '';
+
                 let updateData = {
                     status: newStatus,
                     assignedTo: newAssigned,
@@ -2030,6 +2225,7 @@
                     gut: calculateGUT('manage'),
                     itemsUsed: [...appState.tempItems],
                     deadline: isoDeadline,
+                    linkedMachineId: linkedMachineId,
                     history: history
                 };
 
@@ -2605,9 +2801,343 @@
         window.assumeOS = assumeOS;
         window.deleteOS = deleteOS;
         window.toggleEditMode = toggleEditMode;
-
         window.openPhotoModal = openPhotoModal;
         window.closePhotoModal = closePhotoModal;
+
+        // --- GESTÃO DE EQUIPAMENTOS E PM ---
+        function updatePMAlerts() {
+            let alerts = 0;
+            const now = new Date();
+            appState.machines.forEach(m => {
+                if (!m.lastPmDate) {
+                    alerts++;
+                    return;
+                }
+                const lastPm = new Date(m.lastPmDate + 'T00:00:00');
+                const diffTime = Math.abs(now - lastPm);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays >= (m.pmInterval || 30)) {
+                    alerts++;
+                }
+            });
+            const badge = document.getElementById('badge-pm-alerts');
+            if (badge) {
+                badge.innerText = alerts;
+                if (alerts > 0 && appState.currentUser && ['maintenance', 'admin', 'operacional_leader'].includes(appState.currentUser.role)) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
+        function renderMachinesList() {
+            const container = document.getElementById('machines-list-container');
+            const term = document.getElementById('search-machine').value.toLowerCase();
+            
+            let filtered = [...appState.machines];
+            if(term) {
+                filtered = filtered.filter(m => 
+                    (m.name && m.name.toLowerCase().includes(term)) || 
+                    (m.patrimony && m.patrimony.toLowerCase().includes(term))
+                );
+            }
+
+            container.innerHTML = '';
+            if(filtered.length === 0) {
+                container.innerHTML = `<div class="text-center p-8 text-gray-400 text-sm border-2 border-dashed rounded-xl border-gray-200">Nenhum equipamento cadastrado.</div>`;
+                return;
+            }
+
+            const now = new Date();
+            filtered.forEach(m => {
+                let statusHtml = '';
+                let isOverdue = false;
+                if (!m.lastPmDate) {
+                    statusHtml = `<span class="text-[10px] bg-red-100 text-danger border border-red-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-triangle"></i> Sem Prev.</span>`;
+                    isOverdue = true;
+                } else {
+                    const lastPm = new Date(m.lastPmDate + 'T00:00:00');
+                    const diffTime = Math.abs(now - lastPm);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const remaining = (m.pmInterval || 30) - diffDays;
+                    
+                    if (remaining < 0) {
+                        statusHtml = `<span class="text-[10px] bg-red-100 text-danger border border-red-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-triangle"></i> Atrasada ${Math.abs(remaining)}d</span>`;
+                        isOverdue = true;
+                    } else if (remaining <= 5) {
+                        statusHtml = `<span class="text-[10px] bg-orange-100 text-warning border border-orange-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-circle"></i> Vence em ${remaining}d</span>`;
+                    } else {
+                        statusHtml = `<span class="text-[10px] bg-green-100 text-success border border-green-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-check-circle"></i> OK</span>`;
+                    }
+                }
+
+                container.innerHTML += `
+                    <div onclick="openMachineDetails('${m.dbId}')" class="bg-white p-4 rounded-xl border ${isOverdue ? 'border-red-300' : 'border-gray-200'} shadow-sm active:scale-95 transition cursor-pointer hover:shadow-md">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-black text-dark text-sm uppercase">${m.name}</h3>
+                                <p class="text-[10px] text-gray-500 font-bold mt-1">Pat: ${m.patrimony || 'N/A'} | Setor: ${m.sector}</p>
+                            </div>
+                            ${statusHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        window.renderMachinesList = renderMachinesList;
+
+        function openAddMachineModal() {
+            const select = document.getElementById('new-mach-sector');
+            select.innerHTML = '';
+            appState.sectors.forEach(s => {
+                select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+            });
+            document.getElementById('form-new-machine').reset();
+            document.getElementById('modal-add-machine').classList.remove('hidden');
+            document.getElementById('modal-add-machine').classList.add('flex');
+        }
+        window.openAddMachineModal = openAddMachineModal;
+
+        function closeAddMachineModal() {
+            document.getElementById('modal-add-machine').classList.add('hidden');
+            document.getElementById('modal-add-machine').classList.remove('flex');
+        }
+        window.closeAddMachineModal = closeAddMachineModal;
+
+        async function saveMachine(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            const name = document.getElementById('new-mach-name').value.trim();
+            const patrimony = document.getElementById('new-mach-patrimony').value.trim();
+            const sector = document.getElementById('new-mach-sector').value;
+            const pmInterval = parseInt(document.getElementById('new-mach-interval').value);
+            const lastPmDate = document.getElementById('new-mach-lastpm').value;
+
+            try {
+                await addDoc(collection(db, "machines"), {
+                    name, patrimony, sector, pmInterval, lastPmDate,
+                    createdAt: new Date().toISOString()
+                });
+                showToast("Equipamento cadastrado!");
+                closeAddMachineModal();
+            } catch (err) {
+                console.error("Erro ao salvar máquina:", err);
+                showToast("Erro ao cadastrar equipamento.");
+            } finally {
+                btn.innerHTML = 'Salvar Equipamento';
+                btn.disabled = false;
+            }
+        }
+        window.saveMachine = saveMachine;
+
+        let currentMachineId = null;
+        function openMachineDetails(machId) {
+            currentMachineId = machId;
+            const mach = appState.machines.find(m => m.dbId === machId);
+            if (!mach) return;
+
+            document.getElementById('mach-detail-name').innerText = mach.name;
+            document.getElementById('mach-detail-patrimony').innerText = mach.patrimony ? 'PAT: ' + mach.patrimony : 'SEM PATRIMÔNIO';
+            document.getElementById('mach-detail-interval').innerText = mach.pmInterval || 30;
+
+            let nextPmText = '--/--/----';
+            if (mach.lastPmDate) {
+                const nextPm = new Date(mach.lastPmDate + 'T00:00:00');
+                nextPm.setDate(nextPm.getDate() + (mach.pmInterval || 30));
+                nextPmText = nextPm.toLocaleDateString('pt-BR');
+            }
+            document.getElementById('mach-detail-nextpm').innerText = nextPmText;
+
+            // Histórico de OS
+            const historyContainer = document.getElementById('mach-history-container');
+            const linkedOSs = appState.orders.filter(o => o.linkedMachineId === machId).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            historyContainer.innerHTML = '';
+            if(linkedOSs.length === 0) {
+                historyContainer.innerHTML = `<div class="text-[10px] text-gray-500 italic p-4 text-center border rounded">Nenhum histórico de ocorrência para esta máquina.</div>`;
+            } else {
+                linkedOSs.forEach(o => {
+                    // A função getStatusStyles precisa existir no seu código base. Se não, fallback básico.
+                    const statusClass = typeof getStatusStyles === 'function' ? getStatusStyles(o.status) : 'bg-gray-100 text-gray-600';
+                    historyContainer.innerHTML += `
+                        <div class="bg-white p-3 rounded border border-gray-200 shadow-sm text-sm cursor-pointer hover:shadow-md transition" onclick="closeMachineDetails(); navigate('home'); setTimeout(()=>openOSDetails('${o.dbId}'), 300)">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-dark">${o.id}</span>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${statusClass}">${o.status}</span>
+                            </div>
+                            <p class="text-xs text-gray-600 line-clamp-1 mb-1">${o.description}</p>
+                            ${o.cause ? `<p class="text-[10px] text-gray-500 bg-gray-50 p-1.5 rounded"><strong class="text-dark"><i class="fas fa-stethoscope text-brand"></i> Causa:</strong> ${o.cause}</p>` : ''}
+                            <span class="text-[9px] text-gray-400 font-medium block mt-1">${new Date(o.createdAt).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('modal-machine-details').classList.remove('hidden');
+            document.getElementById('modal-machine-details').classList.add('flex');
+            
+            const btnDel = document.getElementById('btn-delete-machine');
+            if(btnDel) {
+                if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
+                    btnDel.classList.remove('hidden');
+                } else {
+                    btnDel.classList.add('hidden');
+                }
+            }
+        }
+        window.openMachineDetails = openMachineDetails;
+
+        function closeMachineDetails() {
+            document.getElementById('modal-machine-details').classList.add('hidden');
+            document.getElementById('modal-machine-details').classList.remove('flex');
+            currentMachineId = null;
+        }
+        window.closeMachineDetails = closeMachineDetails;
+
+        async function registerPM() {
+            if (!currentMachineId) return;
+            if(!confirm("Confirmar realização de Manutenção Preventiva para hoje? O contador será zerado.")) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                await updateDoc(doc(db, "machines", currentMachineId), {
+                    lastPmDate: today
+                });
+                showToast("Manutenção Preventiva registrada!");
+                openMachineDetails(currentMachineId);
+            } catch (err) {
+                console.error("Erro ao registrar PM:", err);
+                showToast("Erro ao registrar.");
+            }
+        }
+        window.registerPM = registerPM;
+        
+        async function deleteMachine() {
+            if (!currentMachineId) return;
+            if(!confirm("ATENÇÃO: Deseja excluir este equipamento? Todo o histórico continuará nas OSs, mas o equipamento não aparecerá mais.")) return;
+
+            try {
+                await deleteDoc(doc(db, "machines", currentMachineId));
+                showToast("Equipamento excluído!");
+                closeMachineDetails();
+            } catch (err) {
+                console.error("Erro ao excluir máquina:", err);
+                showToast("Erro ao excluir.");
+            }
+        }
+        window.deleteMachine = deleteMachine;
+        
+        function populateEquipmentSelect() {
+            const select = document.getElementById('manage-equipment');
+            if(!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Nenhum</option>';
+            appState.machines.forEach(m => {
+                select.innerHTML += `<option value="${m.dbId}">${m.name} ${m.patrimony ? '('+m.patrimony+')' : ''}</option>`;
+            });
+            if(currentVal) select.value = currentVal;
+        }
+        window.populateEquipmentSelect = populateEquipmentSelect;
+
+        window.chartInstances = {};
+
+        function drawParetoCharts() {
+            const concluidas = appState.orders.filter(o => o.status && (o.status.toLowerCase().includes('concluí') || o.status.toLowerCase().includes('conclui')));
+            
+            // Pareto Causas
+            const causesMap = {};
+            concluidas.forEach(o => {
+                if(o.cause && o.cause.trim() !== '') {
+                    const c = o.cause.trim().substring(0, 30);
+                    causesMap[c] = (causesMap[c] || 0) + 1;
+                }
+            });
+            const sortedCauses = Object.keys(causesMap).map(k => ({ label: k, count: causesMap[k] })).sort((a,b) => b.count - a.count).slice(0, 10);
+            
+            // Pareto Equipamentos
+            const equipMap = {};
+            concluidas.forEach(o => {
+                if(o.linkedMachineId) {
+                    const m = appState.machines.find(mac => mac.dbId === o.linkedMachineId);
+                    const name = m ? m.name : "Eq. Desconhecido";
+                    equipMap[name] = (equipMap[name] || 0) + 1;
+                }
+            });
+            const sortedEquips = Object.keys(equipMap).map(k => ({ label: k, count: equipMap[k] })).sort((a,b) => b.count - a.count).slice(0, 10);
+
+            // Pareto Setores
+            const sectorMap = {};
+            concluidas.forEach(o => {
+                if(o.sector) {
+                    sectorMap[o.sector] = (sectorMap[o.sector] || 0) + 1;
+                }
+            });
+            const sortedSectors = Object.keys(sectorMap).map(k => ({ label: k, count: sectorMap[k] })).sort((a,b) => b.count - a.count);
+
+            const buildChart = (canvasId, dataArr, color) => {
+                const ctx = document.getElementById(canvasId);
+                if(!ctx || typeof Chart === 'undefined') return;
+                
+                if(window.chartInstances[canvasId]) {
+                    window.chartInstances[canvasId].destroy();
+                }
+
+                let total = dataArr.reduce((sum, item) => sum + item.count, 0);
+                let accum = 0;
+                const labels = dataArr.map(d => d.label);
+                const bars = dataArr.map(d => d.count);
+                const lines = dataArr.map(d => {
+                    accum += d.count;
+                    return (accum / total) * 100;
+                });
+
+                window.chartInstances[canvasId] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'line',
+                                label: '% Acumulada',
+                                data: lines,
+                                borderColor: '#ef4444',
+                                backgroundColor: '#ef4444',
+                                borderWidth: 2,
+                                fill: false,
+                                yAxisID: 'y1'
+                            },
+                            {
+                                type: 'bar',
+                                label: 'Frequência',
+                                data: bars,
+                                backgroundColor: color,
+                                borderRadius: 4,
+                                yAxisID: 'y'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { type: 'linear', display: true, position: 'left', beginAtZero: true, ticks: { precision: 0 } },
+                            y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, max: 105, grid: { drawOnChartArea: false } }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            };
+
+            if(sortedCauses.length > 0) buildChart('pareto-causes', sortedCauses, '#DDA800');
+            if(sortedEquips.length > 0) buildChart('pareto-equipment', sortedEquips, '#3b82f6');
+            if(sortedSectors.length > 0) buildChart('pareto-sectors', sortedSectors, '#10b981');
+        }
 
         async function syncAllToSheets() {
             if(!confirm("Deseja sincronizar todas as ordens de serviço existentes para o Google Sheets?\nIsso pode demorar alguns segundos dependendo da quantidade de dados.")) return;
