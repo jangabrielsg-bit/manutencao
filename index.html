@@ -234,9 +234,6 @@
                 <div id="home-tab-machines" class="hidden mb-8 mt-2">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-bold text-dark text-xs uppercase tracking-wider ml-1 text-gray-500">Gestão de Ativos</h3>
-                        <button id="btn-add-machine" onclick="openAddMachineModal()" class="hidden bg-dark text-brand font-bold py-1.5 px-3 rounded-lg shadow-sm active:scale-95 transition items-center gap-2 text-xs">
-                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Novo</span>
-                        </button>
                     </div>
                     
                     <div class="relative w-full mb-4">
@@ -314,7 +311,11 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento com Defeito</label>
-                        <input type="text" id="os-equipment" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm" placeholder="Opcional. Ex: Máquina 1, Ar Condicionado...">
+                        <div class="relative w-full" onclick="openEquipmentSearchModal('new')">
+                            <input type="text" id="os-equipment" readonly placeholder="Clique para selecionar..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none cursor-pointer focus:border-brand focus:ring-1 focus:ring-brand text-sm">
+                            <i class="fas fa-search absolute right-4 top-3.5 text-gray-400"></i>
+                        </div>
+                        <input type="hidden" id="new-machine-dbid">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição Detalhada *</label>
@@ -431,8 +432,11 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">Equipamento Vinculado</label>
-                                    <input type="text" list="equipment-datalist" id="manage-equipment-search" placeholder="Buscar máquina..." class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
-                                    <datalist id="equipment-datalist"></datalist>
+                                    <div class="relative w-full" onclick="openEquipmentSearchModal('manage')">
+                                        <input type="text" id="manage-equipment-search" readonly placeholder="Clique para selecionar..." class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none cursor-pointer">
+                                        <i class="fas fa-search absolute right-3 top-2.5 text-gray-400"></i>
+                                    </div>
+                                    <input type="hidden" id="manage-machine-dbid">
                                 </div>
                             </div>
                             <div>
@@ -817,9 +821,31 @@
 
         <!-- BARRA INFERIOR COM BOTÃO DE NOVA OS DESTACADO -->
         <div id="bottom-bar-new-os" class="fixed bottom-0 w-full px-6 py-4 z-40 bg-grayBg/90 backdrop-blur pointer-events-none hidden flex-col items-center">
-            <button onclick="navigate('new-os')" class="pointer-events-auto w-full max-w-sm bg-dark text-brand font-black text-[13px] uppercase tracking-wider py-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all border-2 border-gray-800">
+            <button id="btn-bottom-new-os" onclick="navigate('new-os')" class="pointer-events-auto w-full max-w-sm bg-dark text-brand font-black text-[13px] uppercase tracking-wider py-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all border-2 border-gray-800">
                 <i class="fas fa-plus-circle text-xl"></i> Registrar Nova Ocorrência
             </button>
+            <button id="btn-bottom-new-machine" onclick="openAddMachineModal()" class="pointer-events-auto w-full max-w-sm bg-brand text-dark font-black text-[13px] uppercase tracking-wider py-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.2)] hidden items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all border-2 border-brand">
+                <i class="fas fa-plus-circle text-xl"></i> Adicionar Máquina
+            </button>
+        </div>
+
+        <!-- Modal de Busca Inteligente de Equipamento -->
+        <div id="modal-equipment-search" class="fixed inset-0 bg-black/50 z-[80] hidden flex-col items-center justify-start p-4 pt-10">
+            <div class="bg-white w-full max-w-md rounded-xl shadow-xl overflow-hidden slide-up h-[80vh] flex flex-col">
+                <div class="bg-dark p-4 flex justify-between items-center text-brand shrink-0">
+                    <h3 class="font-bold uppercase">Selecionar Equipamento</h3>
+                    <button type="button" onclick="closeEquipmentSearchModal()" class="text-white hover:text-brand"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="p-4 border-b shrink-0 bg-white">
+                    <div class="relative w-full">
+                        <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="search-equipment-modal" oninput="renderEquipmentSearchList()" placeholder="Buscar por nome ou patrimônio..." class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl shadow-inner border border-gray-200 focus:ring-2 focus:ring-brand text-sm outline-none">
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50" id="equipment-search-list">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
         </div>
 
     </main>
@@ -1384,7 +1410,20 @@
                 targetBtn.classList.add('flex', 'items-center', 'justify-center');
             }
             
-            if(tab === 'machines') renderMachinesList();
+            if(tab === 'machines') {
+                renderMachinesList();
+                document.getElementById('btn-bottom-new-os').classList.add('hidden');
+                document.getElementById('btn-bottom-new-os').classList.remove('flex');
+                if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
+                    document.getElementById('btn-bottom-new-machine').classList.remove('hidden');
+                    document.getElementById('btn-bottom-new-machine').classList.add('flex');
+                }
+            } else {
+                document.getElementById('btn-bottom-new-machine').classList.add('hidden');
+                document.getElementById('btn-bottom-new-machine').classList.remove('flex');
+                document.getElementById('btn-bottom-new-os').classList.remove('hidden');
+                document.getElementById('btn-bottom-new-os').classList.add('flex');
+            }
         }
 
         function renderHome() {
@@ -1918,11 +1957,14 @@
                 const num = maxNum + 1;
                 const newId = `OS-${year}${String(num).padStart(4, '0')}`;
 
+                const equipDbId = document.getElementById('new-machine-dbid') ? document.getElementById('new-machine-dbid').value : null;
+
                 const newOS = {
                     id: newId,
                     requester: document.getElementById('os-requester').value,
                     sector: document.getElementById('os-sector').value,
                     equipment: document.getElementById('os-equipment').value,
+                    linkedMachineId: equipDbId,
                     description: document.getElementById('os-description').value,
                     photos: appState.newOsPhotos ? [...appState.newOsPhotos] : [],
                     gut: calculateGUT('new'), 
@@ -2115,13 +2157,16 @@
                 calculateGUT('manage');
 
                 const equipSearch = document.getElementById('manage-equipment-search');
+                const equipHidden = document.getElementById('manage-machine-dbid');
                 if (equipSearch) {
                     if (os.linkedMachineId) {
                         const m = appState.machines.find(mac => mac.dbId === os.linkedMachineId);
                         if (m) equipSearch.value = `${m.name} ${m.patrimony ? '('+m.patrimony+')' : ''}`;
                         else equipSearch.value = '';
+                        equipHidden.value = os.linkedMachineId;
                     } else {
                         equipSearch.value = '';
+                        equipHidden.value = '';
                     }
                 }
 
@@ -3021,18 +3066,7 @@
                     (m.name && m.name.toLowerCase().includes(term)) || 
                     (m.patrimony && m.patrimony.toLowerCase().includes(term))
                 );
-            }
-
-            const btnAdd = document.getElementById('btn-add-machine');
-            if (btnAdd) {
-                if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
-                    btnAdd.classList.remove('hidden');
-                    btnAdd.classList.add('flex');
-                } else {
-                    btnAdd.classList.add('hidden');
-                    btnAdd.classList.remove('flex');
-                }
-            }
+            // A lógica de adicionar já não é mais pelo btn-add-machine inline, agora está no bottom-bar.
 
             container.innerHTML = '';
             if(filtered.length === 0) {
