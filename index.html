@@ -126,7 +126,7 @@
                     <i class="fas fa-clock"></i>
                     <span id="badge-my-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
                 </button>
-                <button onclick="navigate('home'); switchHomeTab('machines');" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
+                <button onclick="navigate('home'); setTimeout(() => switchHomeTab('machines'), 50);" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
                     <i class="fas fa-bell text-dark"></i>
                     <span id="badge-pm-alerts" class="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-[9px] text-white font-bold rounded-full hidden border border-brand flex items-center justify-center"></span>
                 </button>
@@ -153,9 +153,9 @@
                 
                 <!-- MENU DE ABAS DA HOME -->
                 <div class="flex gap-2 mt-6 pb-2">
-                    <button id="btn-tab-dashboard" onclick="switchHomeTab('dashboard')" class="flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm">Resumo Geral</button>
-                    <button id="btn-tab-sectors" onclick="switchHomeTab('sectors')" class="flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm">Setores</button>
-                    <button id="btn-tab-machines" onclick="switchHomeTab('machines')" class="hidden maint-action flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm">Máquinas</button>
+                    <button id="btn-tab-dashboard" onclick="switchHomeTab('dashboard')" class="flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm flex items-center justify-center">Resumo Geral</button>
+                    <button id="btn-tab-sectors" onclick="switchHomeTab('sectors')" class="flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm flex items-center justify-center">Setores</button>
+                    <button id="btn-tab-machines" onclick="switchHomeTab('machines')" class="hidden maint-action flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm flex items-center justify-center">Máquinas</button>
                 </div>
             </div>
 
@@ -687,9 +687,14 @@
                                 <span class="text-xs text-gray-500 font-bold block uppercase">Próxima Preventiva</span>
                                 <span class="text-sm font-black" id="mach-detail-nextpm">--/--/----</span>
                             </div>
-                            <button onclick="registerPM()" class="bg-green-500 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm hover:bg-green-600 transition flex items-center gap-2">
+                        <div class="flex flex-col gap-2">
+                            <select id="pm-technician" class="p-2 text-xs border border-gray-200 rounded outline-none w-full">
+                                <option value="">Técnico Responsável...</option>
+                            </select>
+                            <button onclick="registerPM()" class="bg-green-500 text-white px-4 py-2 text-xs font-bold rounded-lg shadow-sm hover:bg-green-600 transition flex items-center justify-center gap-2">
                                 <i class="fas fa-tools"></i> Registrar Preventiva
                             </button>
+                        </div>
                         </div>
                         <p class="text-[10px] text-gray-400">A rotina de preventiva zera o contador de dias para a próxima manutenção (Intervalo atual: <span id="mach-detail-interval"></span> dias).</p>
                     </div>
@@ -1327,6 +1332,7 @@
                 if (btn) {
                     btn.classList.remove(...activeClasses);
                     btn.classList.add(...inactiveClasses);
+                    btn.classList.add('flex', 'items-center', 'justify-center');
                 }
             });
             
@@ -1337,6 +1343,7 @@
             if (targetBtn) {
                 targetBtn.classList.remove(...inactiveClasses);
                 targetBtn.classList.add(...activeClasses);
+                targetBtn.classList.add('flex', 'items-center', 'justify-center');
             }
             
             if(tab === 'machines') renderMachinesList();
@@ -2004,6 +2011,9 @@
 
             const isMaint = appState.currentUser.role === 'maintenance' || appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader';
             
+            // Populate equipment list to ensure datalist is updated
+            if(typeof populateEquipmentSelect === 'function') populateEquipmentSelect();
+            
             // Sempre começa no modo leitura, e permite ir para edição se for manutenção/admin
             document.getElementById('form-manage-os').classList.add('hidden');
             document.getElementById('readonly-management').classList.remove('hidden');
@@ -2377,15 +2387,8 @@
                     console.warn("Erro na integração com Sheets:", sheetErr);
                 }
                 
-                showToast(`Você assumiu a ${id}. Opcional: envie atualização pelo WhatsApp.`);
+                showToast(`Você assumiu a ${id}.`);
                 openOSDetails(dbId);
-
-                // Abre o WhatsApp para o solicitante (simulando clique no botão de encaminhar customizado)
-                const osData = appState.orders.find(o => o.id === id);
-                if (osData) {
-                    const msg = encodeURIComponent(`Olá ${osData.requester},\nSua ordem de serviço *${id}* foi assumida por *${myName}* e está em andamento.`);
-                    window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
-                }
             } catch(e) {
                 console.error("Erro ao assumir:", e);
                 showToast("Erro ao assumir OS.");
@@ -2901,6 +2904,10 @@
             
             titleEl.innerText = title;
             if(window.buildChart) window.buildChart('canvas-fullscreen', dataArr, color);
+
+            setTimeout(() => {
+                if(window.resizeChart) window.resizeChart();
+            }, 50);
         }
 
         window.closeChartFullscreen = function() {
@@ -2911,6 +2918,24 @@
                 window.chartInstances['canvas-fullscreen'].destroy();
             }
         }
+
+        window.resizeChart = function() {
+            const canvasContainer = document.getElementById('modal-chart-fullscreen');
+            if (!canvasContainer || canvasContainer.classList.contains('hidden')) return;
+            const wrapper = canvasContainer.querySelector('.flex-1');
+            const canvasDiv = wrapper.querySelector('div');
+            
+            if (window.innerWidth < window.innerHeight) { 
+                canvasDiv.style.transform = `rotate(90deg)`;
+                canvasDiv.style.width = `${wrapper.clientHeight}px`;
+                canvasDiv.style.height = `${wrapper.clientWidth}px`;
+            } else { 
+                canvasDiv.style.transform = `none`;
+                canvasDiv.style.width = `100%`;
+                canvasDiv.style.height = `100%`;
+            }
+        }
+        window.addEventListener('resize', window.resizeChart);
 
         // --- GESTÃO DE EQUIPAMENTOS E PM ---
         function updatePMAlerts() {
@@ -3088,6 +3113,15 @@
             document.getElementById('modal-machine-details').classList.remove('hidden');
             document.getElementById('modal-machine-details').classList.add('flex');
             
+            const pmTechSelect = document.getElementById('pm-technician');
+            if(pmTechSelect) {
+                pmTechSelect.innerHTML = '<option value="">Técnico Responsável...</option>';
+                const maintUsers = (appState.registeredUsers || [])
+                    .filter(u => u.role === 'maintenance' || u.role === 'operacional_leader')
+                    .map(u => u.name);
+                maintUsers.forEach(c => pmTechSelect.innerHTML += `<option value="${c}" ${appState.currentUser && appState.currentUser.name === c ? 'selected' : ''}>${c}</option>`);
+            }
+            
             const btnDel = document.getElementById('btn-delete-machine');
             if(btnDel) {
                 if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
@@ -3108,12 +3142,30 @@
 
         async function registerPM() {
             if (!currentMachineId) return;
-            if(!confirm("Confirmar realização de Manutenção Preventiva para hoje? O contador será zerado.")) return;
+            
+            const pmTechSelect = document.getElementById('pm-technician');
+            const pmTech = pmTechSelect && pmTechSelect.value ? pmTechSelect.value : (appState.currentUser ? appState.currentUser.name : 'Sistema');
+            
+            if(!pmTechSelect || !pmTechSelect.value) {
+                showToast("Selecione o técnico responsável.");
+                return;
+            }
+            
+            if(!confirm(`Confirmar realização de Manutenção Preventiva por ${pmTech}? O contador será zerado.`)) return;
 
             const today = new Date().toISOString().split('T')[0];
             try {
+                const mach = appState.machines.find(m => m.dbId === currentMachineId);
+                let history = mach && mach.history ? [...mach.history] : [];
+                history.push({
+                    date: new Date().toISOString(),
+                    tech: pmTech,
+                    description: "Manutenção Preventiva Registrada"
+                });
+
                 await updateDoc(doc(db, "machines", currentMachineId), {
-                    lastPmDate: today
+                    lastPmDate: today,
+                    history: history
                 });
                 showToast("Manutenção Preventiva registrada!");
                 openMachineDetails(currentMachineId);
