@@ -126,7 +126,7 @@
                     <i class="fas fa-clock"></i>
                     <span id="badge-my-os" class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full hidden border border-brand"></span>
                 </button>
-                <button onclick="navigate('machines')" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
+                <button onclick="navigate('home'); switchHomeTab('machines');" class="maint-action w-8 h-8 rounded-full border border-dark/20 flex items-center justify-center hover:bg-dark/10 transition relative">
                     <i class="fas fa-bell text-dark"></i>
                     <span id="badge-pm-alerts" class="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-[9px] text-white font-bold rounded-full hidden border border-brand flex items-center justify-center"></span>
                 </button>
@@ -155,6 +155,7 @@
                 <div class="flex gap-2 mt-6 pb-2">
                     <button id="btn-tab-dashboard" onclick="switchHomeTab('dashboard')" class="flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm">Resumo Geral</button>
                     <button id="btn-tab-sectors" onclick="switchHomeTab('sectors')" class="flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm">Setores</button>
+                    <button id="btn-tab-machines" onclick="switchHomeTab('machines')" class="hidden maint-action flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm">Máquinas</button>
                 </div>
             </div>
 
@@ -225,6 +226,25 @@
                 <div id="home-tab-sectors" class="hidden bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 mt-2">
                     <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Filtrar por Setor</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="sector-grid">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
+
+                <!-- ABA 3: EQUIPAMENTOS -->
+                <div id="home-tab-machines" class="hidden mb-8 mt-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-dark text-xs uppercase tracking-wider ml-1 text-gray-500">Gestão de Ativos</h3>
+                        <button id="btn-add-machine" onclick="openAddMachineModal()" class="hidden bg-dark text-brand font-bold py-1.5 px-3 rounded-lg shadow-sm active:scale-95 transition items-center gap-2 text-xs">
+                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Novo</span>
+                        </button>
+                    </div>
+                    
+                    <div class="relative w-full mb-4">
+                        <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
+                        <input type="text" id="search-machine" oninput="renderMachinesList()" placeholder="Buscar por nome ou patrimônio..." class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl shadow-sm border-none focus:ring-2 focus:ring-brand text-sm outline-none">
+                    </div>
+
+                    <div id="machines-list-container" class="space-y-3 pb-8">
                         <!-- Gerado via JS -->
                     </div>
                 </div>
@@ -411,9 +431,8 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">Equipamento Vinculado</label>
-                                    <select id="manage-equipment" class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
-                                        <option value="">Nenhum</option>
-                                    </select>
+                                    <input type="text" list="equipment-datalist" id="manage-equipment-search" placeholder="Buscar máquina..." class="w-full p-2 text-sm bg-white rounded border border-gray-300 outline-none">
+                                    <datalist id="equipment-datalist"></datalist>
                                 </div>
                             </div>
                             <div>
@@ -559,43 +578,57 @@
                     <!-- Gerado via JS -->
                 </div>
 
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-6">
-                    <h3 class="font-bold text-dark text-sm uppercase tracking-wider mb-4 border-b pb-2"><i class="fas fa-chart-pie text-brand mr-2"></i> Análise de Causas (Pareto)</h3>
-                    <div class="w-full h-64"><canvas id="pareto-causes"></canvas></div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col">
+                    <div class="flex justify-between items-center border-b pb-2 mb-4">
+                        <h3 class="font-bold text-dark text-sm uppercase tracking-wider"><i class="fas fa-chart-pie text-brand mr-2"></i> Análise de Causas</h3>
+                        <button onclick="openChartFullscreen('causes')" class="text-gray-400 hover:text-brand bg-gray-50 px-3 py-1 rounded border active:scale-95" title="Tela Cheia"><i class="fas fa-expand mr-1"></i> <span class="text-xs font-bold">Expandir</span></button>
+                    </div>
+                    <div class="w-full h-72"><canvas id="pareto-causes"></canvas></div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                        <h3 class="font-bold text-dark text-sm uppercase tracking-wider mb-4 border-b pb-2">Equipamentos Críticos</h3>
-                        <div class="w-full h-56"><canvas id="pareto-equipment"></canvas></div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h3 class="font-bold text-dark text-sm uppercase tracking-wider">Equipamentos Críticos</h3>
+                            <button onclick="openChartFullscreen('equipment')" class="text-gray-400 hover:text-brand bg-gray-50 px-2 py-1 rounded border active:scale-95" title="Tela Cheia"><i class="fas fa-expand"></i></button>
+                        </div>
+                        <div class="w-full h-72"><canvas id="pareto-equipment"></canvas></div>
                     </div>
-                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                        <h3 class="font-bold text-dark text-sm uppercase tracking-wider mb-4 border-b pb-2">Setores com mais OSs</h3>
-                        <div class="w-full h-56"><canvas id="pareto-sectors"></canvas></div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h3 class="font-bold text-dark text-sm uppercase tracking-wider">Setores com mais OSs</h3>
+                            <button onclick="openChartFullscreen('sectors')" class="text-gray-400 hover:text-brand bg-gray-50 px-2 py-1 rounded border active:scale-95" title="Tela Cheia"><i class="fas fa-expand"></i></button>
+                        </div>
+                        <div class="w-full h-72"><canvas id="pareto-sectors"></canvas></div>
                     </div>
                 </div>
             </div>
 
-        <!-- View: Máquinas e Preventivas -->
-        <div id="view-machines" class="view-section hidden p-6 pb-40 max-w-5xl mx-auto slide-up">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
-                    <h2 class="text-xl font-bold text-dark uppercase">Equipamentos</h2>
-                </div>
-                <button id="btn-add-machine" onclick="openAddMachineModal()" class="hidden bg-dark text-brand font-bold py-2 px-4 rounded-lg shadow-sm active:scale-95 transition items-center gap-2 text-sm">
-                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Novo Equipamento</span>
-                </button>
+    <!-- Modal Detalhes Histórico OS (Read Only) -->
+    <div id="modal-history-os" class="fixed inset-0 bg-black/50 z-[70] hidden flex-col items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden slide-up flex flex-col h-auto max-h-[90vh]">
+            <div class="bg-dark p-4 flex justify-between items-center text-brand shrink-0">
+                <h3 class="font-bold uppercase"><i class="fas fa-history mr-2"></i> Detalhes da OS Histórica</h3>
+                <button type="button" onclick="closeHistoryOSModal()" class="text-white hover:text-brand"><i class="fas fa-times"></i></button>
             </div>
-            
-            <div class="relative w-full mb-6">
-                <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                <input type="text" id="search-machine" oninput="renderMachinesList()" placeholder="Buscar por nome ou patrimônio..." class="w-full pl-10 pr-4 py-3 bg-white rounded-xl shadow-sm border-none focus:ring-2 focus:ring-brand text-sm outline-none">
-            </div>
-
-            <div id="machines-list-container" class="space-y-3">
-                <!-- Gerado via JS -->
+            <div class="p-5 overflow-y-auto" id="history-os-content">
+                <!-- Preenchido via JS -->
             </div>
         </div>
+    </div>
+
+    <!-- Modal Fullscreen Chart -->
+    <div id="modal-chart-fullscreen" class="fixed inset-0 bg-white z-[70] hidden flex-col">
+        <div class="bg-dark p-4 flex justify-between items-center text-brand shrink-0 shadow-md">
+            <h3 class="font-bold uppercase" id="fullscreen-chart-title">Gráfico</h3>
+            <div class="flex items-center gap-4">
+                <span class="text-gray-400 text-xs hidden sm:inline"><i class="fas fa-mobile-alt fa-rotate-90 mr-1"></i> Deite o celular para ver melhor</span>
+                <button type="button" onclick="closeChartFullscreen()" class="text-white hover:text-brand px-2"><i class="fas fa-times text-xl"></i></button>
+            </div>
+        </div>
+        <div class="flex-1 p-4 flex items-center justify-center bg-gray-50 overflow-hidden relative">
+            <div class="w-full h-full"><canvas id="canvas-fullscreen"></canvas></div>
+        </div>
+    </div>
 
         <!-- Modal Cadastrar Máquina -->
         <div id="modal-add-machine" class="fixed inset-0 bg-black/50 z-[60] hidden flex-col items-center justify-center p-4">
@@ -1259,16 +1292,6 @@
             if(viewId === 'analytics') {
                 renderAnalytics();
             }
-            if(viewId === 'machines') {
-                renderMachinesList();
-                if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
-                    document.getElementById('btn-add-machine').classList.remove('hidden');
-                    document.getElementById('btn-add-machine').classList.add('flex');
-                } else {
-                    document.getElementById('btn-add-machine').classList.add('hidden');
-                    document.getElementById('btn-add-machine').classList.remove('flex');
-                }
-            }
 
             currentViewId = viewId;
 
@@ -1293,20 +1316,30 @@
 
         // --- HOME E SETORES ---
         function switchHomeTab(tab) {
-            const btnActive = "flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm";
-            const btnInactive = "flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm";
+            const activeClasses = ['bg-white', 'text-brand', 'font-bold', 'shadow-sm'];
+            const inactiveClasses = ['bg-dark/10', 'text-dark', 'font-medium', 'hover:bg-dark/20'];
             
-            if(tab === 'dashboard') {
-                document.getElementById('home-tab-dashboard').classList.remove('hidden');
-                document.getElementById('home-tab-sectors').classList.add('hidden');
-                document.getElementById('btn-tab-dashboard').className = btnActive;
-                document.getElementById('btn-tab-sectors').className = btnInactive;
-            } else {
-                document.getElementById('home-tab-dashboard').classList.add('hidden');
-                document.getElementById('home-tab-sectors').classList.remove('hidden');
-                document.getElementById('btn-tab-dashboard').className = btnInactive;
-                document.getElementById('btn-tab-sectors').className = btnActive;
+            ['dashboard', 'sectors', 'machines'].forEach(t => {
+                const tabEl = document.getElementById(`home-tab-${t}`);
+                if (tabEl) tabEl.classList.add('hidden');
+                
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (btn) {
+                    btn.classList.remove(...activeClasses);
+                    btn.classList.add(...inactiveClasses);
+                }
+            });
+            
+            const targetTabEl = document.getElementById(`home-tab-${tab}`);
+            if (targetTabEl) targetTabEl.classList.remove('hidden');
+            
+            const targetBtn = document.getElementById(`btn-tab-${tab}`);
+            if (targetBtn) {
+                targetBtn.classList.remove(...inactiveClasses);
+                targetBtn.classList.add(...activeClasses);
             }
+            
+            if(tab === 'machines') renderMachinesList();
         }
 
         function renderHome() {
@@ -2033,6 +2066,17 @@
                 document.getElementById('manage-gut-t').value = os.gut.t;
                 calculateGUT('manage');
 
+                const equipSearch = document.getElementById('manage-equipment-search');
+                if (equipSearch) {
+                    if (os.linkedMachineId) {
+                        const m = appState.machines.find(mac => mac.dbId === os.linkedMachineId);
+                        if (m) equipSearch.value = `${m.name} ${m.patrimony ? '('+m.patrimony+')' : ''}`;
+                        else equipSearch.value = '';
+                    } else {
+                        equipSearch.value = '';
+                    }
+                }
+
                 const assignSelect = document.getElementById('manage-assigned');
                 assignSelect.innerHTML = '<option value="">Nenhum</option>';
                 // Busca dinamicamente os usuários com role 'maintenance' e 'operacional_leader'
@@ -2215,8 +2259,12 @@
                     }
                 }
 
-                const equipSelect = document.getElementById('manage-equipment');
-                const linkedMachineId = equipSelect ? equipSelect.value : '';
+                const equipSearch = document.getElementById('manage-equipment-search');
+                let linkedMachineId = '';
+                if (equipSearch && equipSearch.value) {
+                    const matchedMach = appState.machines.find(m => `${m.name} ${m.patrimony ? '('+m.patrimony+')' : ''}` === equipSearch.value);
+                    if (matchedMach) linkedMachineId = matchedMach.dbId;
+                }
 
                 let updateData = {
                     status: newStatus,
@@ -2804,6 +2852,66 @@
         window.openPhotoModal = openPhotoModal;
         window.closePhotoModal = closePhotoModal;
 
+        window.openChartFullscreen = function(type) {
+            const modal = document.getElementById('modal-chart-fullscreen');
+            const titleEl = document.getElementById('fullscreen-chart-title');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            let title = '';
+            let dataArr = [];
+            let color = '';
+            
+            const concluidas = appState.orders.filter(o => o.status && (o.status.toLowerCase().includes('concluí') || o.status.toLowerCase().includes('conclui')));
+            
+            if (type === 'causes') {
+                title = 'Análise de Causas';
+                color = '#DDA800';
+                const causesMap = {};
+                concluidas.forEach(o => {
+                    if(o.cause && o.cause.trim() !== '') {
+                        const c = o.cause.trim().substring(0, 30);
+                        causesMap[c] = (causesMap[c] || 0) + 1;
+                    }
+                });
+                dataArr = Object.keys(causesMap).map(k => ({ label: k, count: causesMap[k] })).sort((a,b) => b.count - a.count).slice(0, 10);
+            } else if (type === 'equipment') {
+                title = 'Equipamentos Críticos';
+                color = '#3b82f6';
+                const equipMap = {};
+                concluidas.forEach(o => {
+                    if(o.linkedMachineId) {
+                        const m = appState.machines.find(mac => mac.dbId === o.linkedMachineId);
+                        const name = m ? m.name : "Eq. Desconhecido";
+                        equipMap[name] = (equipMap[name] || 0) + 1;
+                    }
+                });
+                dataArr = Object.keys(equipMap).map(k => ({ label: k, count: equipMap[k] })).sort((a,b) => b.count - a.count).slice(0, 10);
+            } else if (type === 'sectors') {
+                title = 'Setores com mais OSs';
+                color = '#10b981';
+                const sectorMap = {};
+                concluidas.forEach(o => {
+                    if(o.sector) {
+                        sectorMap[o.sector] = (sectorMap[o.sector] || 0) + 1;
+                    }
+                });
+                dataArr = Object.keys(sectorMap).map(k => ({ label: k, count: sectorMap[k] })).sort((a,b) => b.count - a.count);
+            }
+            
+            titleEl.innerText = title;
+            if(window.buildChart) window.buildChart('canvas-fullscreen', dataArr, color);
+        }
+
+        window.closeChartFullscreen = function() {
+            const modal = document.getElementById('modal-chart-fullscreen');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if(window.chartInstances['canvas-fullscreen']) {
+                window.chartInstances['canvas-fullscreen'].destroy();
+            }
+        }
+
         // --- GESTÃO DE EQUIPAMENTOS E PM ---
         function updatePMAlerts() {
             let alerts = 0;
@@ -3032,14 +3140,12 @@
         window.deleteMachine = deleteMachine;
         
         function populateEquipmentSelect() {
-            const select = document.getElementById('manage-equipment');
-            if(!select) return;
-            const currentVal = select.value;
-            select.innerHTML = '<option value="">Nenhum</option>';
+            const dl = document.getElementById('equipment-datalist');
+            if(!dl) return;
+            dl.innerHTML = '';
             appState.machines.forEach(m => {
-                select.innerHTML += `<option value="${m.dbId}">${m.name} ${m.patrimony ? '('+m.patrimony+')' : ''}</option>`;
+                dl.innerHTML += `<option value="${m.name} ${m.patrimony ? '('+m.patrimony+')' : ''}" data-id="${m.dbId}"></option>`;
             });
-            if(currentVal) select.value = currentVal;
         }
         window.populateEquipmentSelect = populateEquipmentSelect;
 
@@ -3124,15 +3230,36 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            y: { type: 'linear', display: true, position: 'left', beginAtZero: true, ticks: { precision: 0 } },
-                            y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, max: 105, grid: { drawOnChartArea: false } }
+                            x: {
+                                title: { display: true, text: 'Categorias' }
+                            },
+                            y: { 
+                                type: 'linear', display: true, position: 'left', beginAtZero: true, 
+                                ticks: { precision: 0 },
+                                title: { display: true, text: 'Frequência (OS)' }
+                            },
+                            y1: { 
+                                type: 'linear', display: true, position: 'right', beginAtZero: true, max: 105, 
+                                grid: { drawOnChartArea: false },
+                                title: { display: true, text: '% Acumulada' }
+                            }
                         },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.dataset.yAxisID === 'y1') return context.parsed.y.toFixed(1) + '%';
+                                        return context.parsed.y + ' OSs';
+                                    }
+                                }
+                            }
                         }
                     }
                 });
             };
+            
+            window.buildChart = buildChart;
 
             if(sortedCauses.length > 0) buildChart('pareto-causes', sortedCauses, '#DDA800');
             if(sortedEquips.length > 0) buildChart('pareto-equipment', sortedEquips, '#3b82f6');
