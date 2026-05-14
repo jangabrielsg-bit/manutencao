@@ -667,6 +667,43 @@
             </div>
         </div>
 
+        <!-- Modal Editar Máquina -->
+        <div id="modal-edit-machine" class="fixed inset-0 bg-black/50 z-[70] hidden flex-col items-center justify-center p-4">
+            <div class="bg-white w-full max-w-md rounded-xl shadow-xl overflow-hidden slide-up">
+                <div class="bg-dark p-4 flex justify-between items-center text-brand">
+                    <h3 class="font-bold uppercase">Editar Equipamento</h3>
+                    <button type="button" onclick="closeEditMachineModal()" class="text-white hover:text-brand"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="form-edit-machine" onsubmit="saveEditMachine(event)" class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Nome do Equipamento *</label>
+                        <input type="text" id="edit-mach-name" required class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Patrimônio</label>
+                            <input type="text" id="edit-mach-patrimony" class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Setor *</label>
+                            <select id="edit-mach-sector" required class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand"></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Intervalo Preventiva (Dias) *</label>
+                            <input type="number" id="edit-mach-interval" required min="1" class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Última Preventiva</label>
+                            <input type="date" id="edit-mach-lastpm" class="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg shadow-sm hover:bg-blue-600 transition mt-2">Salvar Alterações</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Modal Detalhes Máquina -->
         <div id="modal-machine-details" class="fixed inset-0 bg-black/50 z-[60] hidden flex-col items-center justify-end sm:justify-center p-0 sm:p-4">
             <div class="bg-white w-full max-w-xl rounded-t-2xl sm:rounded-xl shadow-xl overflow-hidden slide-up h-[85vh] sm:h-[80vh] flex flex-col">
@@ -676,6 +713,7 @@
                         <p class="text-[10px] text-white/70" id="mach-detail-patrimony">Patrimônio</p>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button id="btn-edit-machine" type="button" onclick="openEditMachineModal()" class="text-blue-500 hover:text-blue-400 w-8 h-8 flex items-center justify-center hidden"><i class="fas fa-edit text-lg"></i></button>
                         <button id="btn-delete-machine" type="button" onclick="deleteMachine()" class="text-red-500 hover:text-red-400 w-8 h-8 flex items-center justify-center hidden"><i class="fas fa-trash text-lg"></i></button>
                         <button type="button" onclick="closeMachineDetails()" class="text-white hover:text-brand w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-xl"></i></button>
                     </div>
@@ -2926,13 +2964,22 @@
             const canvasDiv = wrapper.querySelector('div');
             
             if (window.innerWidth < window.innerHeight) { 
-                canvasDiv.style.transform = `rotate(90deg)`;
+                canvasDiv.style.position = 'absolute';
                 canvasDiv.style.width = `${wrapper.clientHeight}px`;
                 canvasDiv.style.height = `${wrapper.clientWidth}px`;
+                canvasDiv.style.top = '50%';
+                canvasDiv.style.left = '50%';
+                canvasDiv.style.transform = `translate(-50%, -50%) rotate(90deg)`;
             } else { 
-                canvasDiv.style.transform = `none`;
+                canvasDiv.style.position = 'relative';
                 canvasDiv.style.width = `100%`;
                 canvasDiv.style.height = `100%`;
+                canvasDiv.style.top = '0';
+                canvasDiv.style.left = '0';
+                canvasDiv.style.transform = `none`;
+            }
+            if(window.chartInstances && window.chartInstances['canvas-fullscreen']) {
+                window.chartInstances['canvas-fullscreen'].resize();
             }
         }
         window.addEventListener('resize', window.resizeChart);
@@ -2974,6 +3021,17 @@
                     (m.name && m.name.toLowerCase().includes(term)) || 
                     (m.patrimony && m.patrimony.toLowerCase().includes(term))
                 );
+            }
+
+            const btnAdd = document.getElementById('btn-add-machine');
+            if (btnAdd) {
+                if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
+                    btnAdd.classList.remove('hidden');
+                    btnAdd.classList.add('flex');
+                } else {
+                    btnAdd.classList.add('hidden');
+                    btnAdd.classList.remove('flex');
+                }
             }
 
             container.innerHTML = '';
@@ -3085,28 +3143,62 @@
             }
             document.getElementById('mach-detail-nextpm').innerText = nextPmText;
 
-            // Histórico de OS
+            // Histórico Combinado (OS e Preventivas)
             const historyContainer = document.getElementById('mach-history-container');
-            const linkedOSs = appState.orders.filter(o => o.linkedMachineId === machId).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-            
+            let combinedHistory = [];
+
+            const linkedOSs = appState.orders.filter(o => o.linkedMachineId === machId);
+            linkedOSs.forEach(o => {
+                combinedHistory.push({
+                    date: o.createdAt,
+                    type: 'os',
+                    data: o
+                });
+            });
+
+            if (mach.history && Array.isArray(mach.history)) {
+                mach.history.forEach(h => {
+                    combinedHistory.push({
+                        date: h.date,
+                        type: 'pm',
+                        data: h
+                    });
+                });
+            }
+
+            combinedHistory.sort((a,b) => new Date(b.date) - new Date(a.date));
+
             historyContainer.innerHTML = '';
-            if(linkedOSs.length === 0) {
-                historyContainer.innerHTML = `<div class="text-[10px] text-gray-500 italic p-4 text-center border rounded">Nenhum histórico de ocorrência para esta máquina.</div>`;
+            if(combinedHistory.length === 0) {
+                historyContainer.innerHTML = `<div class="text-[10px] text-gray-500 italic p-4 text-center border rounded">Nenhum histórico para esta máquina.</div>`;
             } else {
-                linkedOSs.forEach(o => {
-                    // A função getStatusStyles precisa existir no seu código base. Se não, fallback básico.
-                    const statusClass = typeof getStatusStyles === 'function' ? getStatusStyles(o.status) : 'bg-gray-100 text-gray-600';
-                    historyContainer.innerHTML += `
-                        <div class="bg-white p-3 rounded border border-gray-200 shadow-sm text-sm cursor-pointer hover:shadow-md transition" onclick="closeMachineDetails(); navigate('home'); setTimeout(()=>openOSDetails('${o.dbId}'), 300)">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-dark">${o.id}</span>
-                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${statusClass}">${o.status}</span>
+                combinedHistory.forEach(item => {
+                    if (item.type === 'os') {
+                        const o = item.data;
+                        const statusClass = typeof getStatusStyles === 'function' ? getStatusStyles(o.status) : 'bg-gray-100 text-gray-600';
+                        historyContainer.innerHTML += `
+                            <div class="bg-white p-3 rounded border border-gray-200 shadow-sm text-sm cursor-pointer hover:shadow-md transition" onclick="closeMachineDetails(); navigate('home'); setTimeout(()=>openOSDetails('${o.dbId}'), 300)">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-dark">${o.id}</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${statusClass}">${o.status}</span>
+                                </div>
+                                <p class="text-xs text-gray-600 line-clamp-1 mb-1">${o.description}</p>
+                                ${o.cause ? `<p class="text-[10px] text-gray-500 bg-gray-50 p-1.5 rounded"><strong class="text-dark"><i class="fas fa-stethoscope text-brand"></i> Causa:</strong> ${o.cause}</p>` : ''}
+                                <span class="text-[9px] text-gray-400 font-medium block mt-1">${new Date(o.createdAt).toLocaleDateString('pt-BR')}</span>
                             </div>
-                            <p class="text-xs text-gray-600 line-clamp-1 mb-1">${o.description}</p>
-                            ${o.cause ? `<p class="text-[10px] text-gray-500 bg-gray-50 p-1.5 rounded"><strong class="text-dark"><i class="fas fa-stethoscope text-brand"></i> Causa:</strong> ${o.cause}</p>` : ''}
-                            <span class="text-[9px] text-gray-400 font-medium block mt-1">${new Date(o.createdAt).toLocaleDateString('pt-BR')}</span>
-                        </div>
-                    `;
+                        `;
+                    } else {
+                        const p = item.data;
+                        historyContainer.innerHTML += `
+                            <div class="bg-green-50 p-3 rounded border border-green-200 shadow-sm text-sm">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-green-800"><i class="fas fa-tools"></i> Manutenção Preventiva</span>
+                                </div>
+                                <p class="text-xs text-green-700 mb-1">${p.description} (Executado por: ${p.tech})</p>
+                                <span class="text-[9px] text-green-600 font-medium block mt-1">${new Date(p.date).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                        `;
+                    }
                 });
             }
 
@@ -3123,11 +3215,14 @@
             }
             
             const btnDel = document.getElementById('btn-delete-machine');
+            const btnEdit = document.getElementById('btn-edit-machine');
             if(btnDel) {
                 if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'operacional_leader')) {
                     btnDel.classList.remove('hidden');
+                    if(btnEdit) btnEdit.classList.remove('hidden');
                 } else {
                     btnDel.classList.add('hidden');
+                    if(btnEdit) btnEdit.classList.add('hidden');
                 }
             }
         }
@@ -3190,6 +3285,54 @@
             }
         }
         window.deleteMachine = deleteMachine;
+
+        window.openEditMachineModal = function() {
+            if (!currentMachineId) return;
+            const mach = appState.machines.find(m => m.dbId === currentMachineId);
+            if(!mach) return;
+
+            document.getElementById('edit-mach-name').value = mach.name || '';
+            document.getElementById('edit-mach-patrimony').value = mach.patrimony || '';
+            document.getElementById('edit-mach-interval').value = mach.pmInterval || 30;
+            document.getElementById('edit-mach-lastpm').value = mach.lastPmDate || '';
+
+            const sel = document.getElementById('edit-mach-sector');
+            sel.innerHTML = '<option value="">Sem Setor</option>';
+            appState.sectors.forEach(s => {
+                sel.innerHTML += `<option value="${s.name}" ${mach.sector === s.name ? 'selected' : ''}>${s.name}</option>`;
+            });
+
+            document.getElementById('modal-edit-machine').classList.remove('hidden');
+            document.getElementById('modal-edit-machine').classList.add('flex');
+        }
+
+        window.closeEditMachineModal = function() {
+            document.getElementById('modal-edit-machine').classList.add('hidden');
+            document.getElementById('modal-edit-machine').classList.remove('flex');
+        }
+
+        window.saveEditMachine = async function(e) {
+            e.preventDefault();
+            if(!currentMachineId) return;
+
+            const updateData = {
+                name: document.getElementById('edit-mach-name').value.trim(),
+                patrimony: document.getElementById('edit-mach-patrimony').value.trim(),
+                sector: document.getElementById('edit-mach-sector').value,
+                pmInterval: parseInt(document.getElementById('edit-mach-interval').value, 10),
+                lastPmDate: document.getElementById('edit-mach-lastpm').value
+            };
+
+            try {
+                await updateDoc(doc(db, "machines", currentMachineId), updateData);
+                showToast("Equipamento atualizado!");
+                closeEditMachineModal();
+                openMachineDetails(currentMachineId);
+            } catch(err) {
+                console.error("Erro ao atualizar máquina", err);
+                showToast("Erro ao atualizar.");
+            }
+        }
         
         function populateEquipmentSelect() {
             const dl = document.getElementById('equipment-datalist');
