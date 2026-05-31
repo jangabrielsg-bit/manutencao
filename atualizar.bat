@@ -17,11 +17,11 @@ git add .
 
 echo.
 echo Criando um registro da alteracao...
-git commit -m "Atualizacao do sistema (via Script Automatico)"
+git commit -m "Atualizacao do sistema"
 
 echo.
-echo Enviando para a nuvem do Github...
-git push -u origin main
+echo Enviando para a nuvem do Github (Forcando atualizacao)...
+git push -u origin main --force
 
 echo.
 echo ===============================================
