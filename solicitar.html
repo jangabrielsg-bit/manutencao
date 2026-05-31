@@ -171,8 +171,17 @@
                             sectorSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`;
                         });
                         
+                        let setorParam = null;
                         const urlParams = new URLSearchParams(window.location.search);
-                        const setorParam = urlParams.get('setor');
+                        if (urlParams.get('setor')) {
+                            setorParam = urlParams.get('setor');
+                        } else if (window.location.hash && window.location.hash.includes('setor=')) {
+                            // Extract from hash, e.g. #setor=PRODU%C3%87%C3%83O
+                            const hashString = window.location.hash.substring(1); // remove #
+                            const hashParams = new URLSearchParams(hashString);
+                            setorParam = hashParams.get('setor');
+                        }
+
                         if (setorParam) {
                             sectorSelect.value = setorParam;
                         }

@@ -3500,7 +3500,7 @@
             let url = new URL('solicitar.html', window.location.href).href;
             const sectorSelect = document.getElementById('qr-sector-select');
             if (sectorSelect && sectorSelect.value) {
-                url += '?setor=' + encodeURIComponent(sectorSelect.value);
+                url += '#setor=' + encodeURIComponent(sectorSelect.value);
             }
             container.innerHTML = '';
             const size = 180;
