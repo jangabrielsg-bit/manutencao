@@ -8,7 +8,7 @@ echo.
 IF NOT EXIST ".git" (
     echo [!] Configurando a pasta para o Github pela primeira vez...
     git init
-    git remote add origin https://github.com/jangabrielxg-bit/manutencao.git
+    git remote add origin https://github.com/jangabrielsg-bit/manutencao.git
     git branch -M main
 )
 
