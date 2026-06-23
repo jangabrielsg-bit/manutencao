@@ -339,8 +339,16 @@
                 <input type="hidden" id="os-occurrence-type" value="interna">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Seu Nome / Solicitante *</label>
-                        <input type="text" id="os-requester" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Solicitante *</label>
+                        <div class="relative">
+                            <input type="text" id="os-requester" autocomplete="off"
+                                   oninput="filterRequesters(this.value)"
+                                   onfocus="filterRequesters(this.value)"
+                                   onblur="setTimeout(()=>{ const d=document.getElementById('requester-dropdown'); if(d) d.classList.add('hidden'); }, 200)"
+                                   class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm"
+                                   placeholder="Digite para buscar...">
+                            <ul id="requester-dropdown" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor do Problema *</label>
@@ -866,6 +874,16 @@
                     </ul>
                 </div>
 
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-requesters-section">
+                    <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-user-tag text-brand mr-1"></i> Solicitantes Cadastrados</h3>
+                    <p class="text-xs text-gray-500 mb-3">Cadastre os nomes que aparecerão para seleção ao abrir uma OS. Isso evita erros de digitação e caracteres inválidos.</p>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-requester-input" placeholder="Nome do solicitante..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <button onclick="addRequester()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
+                    </div>
+                    <ul id="list-settings-requesters" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
+                </div>
+
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-qrcode text-brand mr-1"></i> QR Code por Setor</h3>
                     <p class="text-xs text-gray-500 mb-3">Selecione um setor para gerar o QR Code. Ao escanear, a tela já virá preenchida.</p>
@@ -1022,6 +1040,7 @@
             newOsPhotos: [],
             resolutionPhotos: [],
             registeredUsers: [],
+            requesters: [],
             currentListSector: null
         };
         let currentViewId = 'login';
@@ -1184,6 +1203,14 @@
             }, (err) => {
                 console.warn("Erro ao ler users (Pode ser esperado se for solicitante anônimo)", err.message);
             });
+
+            // Listener de Solicitantes
+            onSnapshot(collection(db, "requesters"), (snapshot) => {
+                appState.requesters = snapshot.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                if (currentViewId === 'settings' && appState.currentUser && appState.currentUser.role === 'admin') {
+                    renderRequestersSettings();
+                }
+            }, (err) => console.warn("Erro ao ler solicitantes", err.message));
 
             // Listener de Máquinas
             onSnapshot(collection(db, "machines"), (snapshot) => {
@@ -2041,7 +2068,9 @@
                 appState.sectors.forEach(s => {
                     if(s && s.name) select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
                 });
-                document.getElementById('os-requester').value = ''; 
+                document.getElementById('os-requester').value = '';
+                const dd = document.getElementById('requester-dropdown');
+                if (dd) dd.classList.add('hidden');
                 document.getElementById('os-equipment').value = ''; 
                 appState.newOsPhotos = [];
                 if(window.renderNewOsPhotos) window.renderNewOsPhotos();
@@ -2187,6 +2216,20 @@
         async function handleNewOS(e) {
             e.preventDefault();
             try {
+                const requesterInput = document.getElementById('os-requester').value.trim();
+                if (!requesterInput) {
+                    showToast("Informe o solicitante.");
+                    return;
+                }
+                if (appState.requesters && appState.requesters.length > 0) {
+                    const valid = appState.requesters.some(r => r.name === requesterInput);
+                    if (!valid) {
+                        showToast("Selecione um solicitante da lista cadastrada.");
+                        document.getElementById('os-requester').focus();
+                        return;
+                    }
+                }
+
                 const year = new Date().getFullYear();
                 let maxNum = 0;
                 appState.orders.forEach(o => {
@@ -2833,6 +2876,7 @@
             // Só ouve os usuários se for admin e estiver na tela de configurações
             if (appState.currentUser && appState.currentUser.role === 'admin') {
                 renderUsersSettings();
+                renderRequestersSettings();
             }
 
             const qrSectorSelect = document.getElementById('qr-sector-select');
@@ -3081,6 +3125,78 @@
             }
         }
 
+        // --- AUTOCOMPLETE DE SOLICITANTES ---
+        window.filterRequesters = function(val) {
+            const dropdown = document.getElementById('requester-dropdown');
+            if (!dropdown) return;
+            const term = (val || '').toLowerCase().trim();
+            const list = appState.requesters || [];
+            const filtered = term ? list.filter(r => r.name.toLowerCase().includes(term)) : list;
+            if (!filtered.length) {
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center italic">Nenhum solicitante encontrado</li>';
+            } else {
+                dropdown.innerHTML = filtered.map(r =>
+                    `<li class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800"
+                         onmousedown="window.selectRequester('${r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+                        <i class="fas fa-user text-brand mr-2 text-xs"></i>${r.name}
+                    </li>`
+                ).join('');
+            }
+            dropdown.classList.remove('hidden');
+        };
+
+        window.selectRequester = function(name) {
+            const input = document.getElementById('os-requester');
+            if (input) input.value = name;
+            const dropdown = document.getElementById('requester-dropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+        };
+
+        // --- GESTÃO DE SOLICITANTES (ADMIN) ---
+        async function addRequester() {
+            const input = document.getElementById('new-requester-input');
+            const name = input.value.trim();
+            if (!name) return showToast("Digite um nome.");
+            const exists = appState.requesters.some(r => r.name.toLowerCase() === name.toLowerCase());
+            if (exists) return showToast("Solicitante já cadastrado.");
+            try {
+                await addDoc(collection(db, "requesters"), { name, createdAt: new Date().toISOString() });
+                input.value = '';
+                showToast("Solicitante adicionado!");
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao adicionar solicitante.");
+            }
+        }
+
+        async function deleteRequester(uid, name) {
+            if (!confirm(`Remover o solicitante "${name}"?`)) return;
+            try {
+                await deleteDoc(doc(db, "requesters", uid));
+                showToast("Solicitante removido.");
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao remover.");
+            }
+        }
+
+        function renderRequestersSettings() {
+            const ul = document.getElementById('list-settings-requesters');
+            if (!ul) return;
+            ul.innerHTML = '';
+            (appState.requesters || []).forEach(r => {
+                ul.innerHTML += `
+                    <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
+                        <span class="font-medium text-dark text-sm"><i class="fas fa-user text-brand mr-2 text-xs"></i>${r.name}</span>
+                        <button onclick="deleteRequester('${r.uid}', '${r.name.replace(/'/g, "\\'")}')" class="text-danger hover:text-red-600 transition ml-2"><i class="fas fa-trash text-xs"></i></button>
+                    </li>
+                `;
+            });
+            if (!appState.requesters.length) {
+                ul.innerHTML = '<li class="text-xs text-gray-400 text-center py-2 italic">Nenhum solicitante cadastrado.</li>';
+            }
+        }
+
         // --- GESTÃO DE USUÁRIOS (ADMIN) ---
         async function adminCreateUser(e) {
             e.preventDefault();
@@ -3245,6 +3361,9 @@
         window.editUser = editUser;
         window.saveEditUser = saveEditUser;
         window.deleteUser = deleteUser;
+        window.addRequester = addRequester;
+        window.deleteRequester = deleteRequester;
+        window.renderRequestersSettings = renderRequestersSettings;
         window.generateQRCode = generateQRCode;
         window.downloadQRCode = downloadQRCode;
         window.addStatus = addStatus;

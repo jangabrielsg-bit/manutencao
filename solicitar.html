@@ -42,8 +42,16 @@
             
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Seu Nome / Solicitante *</label>
-                    <input type="text" id="os-requester" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all" placeholder="Como podemos te chamar?">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Solicitante *</label>
+                    <div class="relative">
+                        <input type="text" id="os-requester" autocomplete="off"
+                               oninput="filterRequesters(this.value)"
+                               onfocus="filterRequesters(this.value)"
+                               onblur="setTimeout(()=>{ const d=document.getElementById('requester-dropdown-sol'); if(d) d.classList.add('hidden'); }, 200)"
+                               class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all"
+                               placeholder="Digite para buscar...">
+                        <ul id="requester-dropdown-sol" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                    </div>
                 </div>
                 
                 <div>
@@ -114,7 +122,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -134,7 +142,8 @@
         let appState = {
             photos: [],
             machines: [],
-            leaders: []
+            leaders: [],
+            requesters: []
         };
 
         function showToast(msg) {
@@ -201,6 +210,15 @@
                         datalist.innerHTML += `<option value="${m.name}"></option>`;
                     });
                 } catch(e) { console.warn("Erro ao carregar maquinas:", e); }
+
+                // Carregar Solicitantes
+                try {
+                    const reqSnap = await getDocs(collection(db, "requesters"));
+                    reqSnap.forEach(d => {
+                        appState.requesters.push({ uid: d.id, ...d.data() });
+                    });
+                    appState.requesters.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                } catch(e) { console.warn("Erro ao carregar solicitantes:", e); }
 
                 // Carregar Lideres
                 try {
@@ -275,9 +293,49 @@
             renderPhotos();
         };
 
+        window.filterRequesters = function(val) {
+            const dropdown = document.getElementById('requester-dropdown-sol');
+            if (!dropdown) return;
+            const term = (val || '').toLowerCase().trim();
+            const list = appState.requesters || [];
+            const filtered = term ? list.filter(r => r.name.toLowerCase().includes(term)) : list;
+            if (!filtered.length) {
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center italic">Nenhum solicitante encontrado</li>';
+            } else {
+                dropdown.innerHTML = filtered.map(r =>
+                    `<li class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800"
+                         onmousedown="window.selectRequester('${r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+                        <i class="fas fa-user text-yellow-500 mr-2 text-xs"></i>${r.name}
+                    </li>`
+                ).join('');
+            }
+            dropdown.classList.remove('hidden');
+        };
+
+        window.selectRequester = function(name) {
+            const input = document.getElementById('os-requester');
+            if (input) input.value = name;
+            const dropdown = document.getElementById('requester-dropdown-sol');
+            if (dropdown) dropdown.classList.add('hidden');
+        };
+
         window.handleNewOS = async function(e) {
             e.preventDefault();
-            
+
+            const requesterInput = document.getElementById('os-requester').value.trim();
+            if (!requesterInput) {
+                showToast("Informe o solicitante.");
+                return;
+            }
+            if (appState.requesters && appState.requesters.length > 0) {
+                const valid = appState.requesters.some(r => r.name === requesterInput);
+                if (!valid) {
+                    showToast("Selecione seu nome da lista.");
+                    document.getElementById('os-requester').focus();
+                    return;
+                }
+            }
+
             const btn = document.getElementById('btn-submit');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
