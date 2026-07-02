@@ -564,7 +564,7 @@
                     history: [{
                         date: new Date().toISOString(),
                         author: requester || "Sistema",
-                        description: "OS Registrada via App QR Code com status 'Solicitada' - Tipo: " + (occurrenceType === 'externa' ? 'Externa' : 'Interna')
+                        description: "O.S. Registrada via App QR Code com status 'Solicitada' - Tipo: " + (occurrenceType === 'externa' ? 'Externa' : 'Interna')
                     }],
                     linkedMachineId: linkedMachineId
                 };
@@ -601,7 +601,7 @@
 
             } catch (error) {
                 console.error("Erro:", error);
-                showToast("Erro ao registrar OS. Tente novamente.");
+                showToast("Erro ao registrar O.S. Tente novamente.");
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Solicitação';
             }

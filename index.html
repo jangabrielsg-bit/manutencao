@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Gestão de Manutenção - OS</title>
+    <title>Gestão de Manutenção - O.S.</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -73,7 +73,7 @@
                     <div class="w-10 h-10 rounded bg-gray-100 text-brand flex items-center justify-center text-xl"><i class="fas fa-user"></i></div>
                     <div class="text-left">
                         <h3 class="font-bold text-dark text-sm">Sou Solicitante</h3>
-                        <p class="text-xs text-gray-500">Registrar e acompanhar OS</p>
+                        <p class="text-xs text-gray-500">Registrar e acompanhar O.S.</p>
                     </div>
                 </button>
 
@@ -97,7 +97,7 @@
                     <div class="w-10 h-10 rounded bg-gray-300 text-gray-700 flex items-center justify-center text-xl"><i class="fas fa-eye"></i></div>
                     <div class="text-left">
                         <h3 class="font-bold text-dark text-sm">Gestor</h3>
-                        <p class="text-xs text-gray-500">Visualização completa e solicitação de OS</p>
+                        <p class="text-xs text-gray-500">Visualização completa e solicitação de O.S.</p>
                     </div>
                 </button>
             </div>
@@ -158,7 +158,7 @@
                 <h2 id="home-greeting" class="text-white font-black text-xl mb-4 drop-shadow-sm">Olá, o que você procura?</h2>
                 <div class="relative w-full">
                     <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar OS, equipamento..." class="w-full pl-11 pr-12 py-3.5 bg-white rounded-xl shadow-md border-none focus:ring-2 focus:ring-yellow-500 text-sm outline-none font-medium transition-all">
+                    <input type="text" id="global-search-os" onkeydown="if(event.key==='Enter') globalSearchOS()" placeholder="Buscar O.S., equipamento..." class="w-full pl-11 pr-12 py-3.5 bg-white rounded-xl shadow-md border-none focus:ring-2 focus:ring-yellow-500 text-sm outline-none font-medium transition-all">
                     <button onclick="globalSearchOS()" class="absolute right-1.5 top-1.5 bottom-1.5 bg-dark text-brand px-4 rounded-lg font-bold text-sm shadow hover:bg-gray-800 transition active:scale-95"><i class="fas fa-arrow-right"></i></button>
                 </div>
                 
@@ -238,7 +238,7 @@
                     <div onclick="openMySolicitations()" class="bg-brand p-4 rounded-2xl shadow-sm border border-yellow-500 flex items-center justify-between cursor-pointer active:scale-95 transition">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-white/20 text-dark flex items-center justify-center"><i class="fas fa-clipboard-list"></i></div>
-                            <h4 class="text-sm text-dark font-bold uppercase opacity-80">OS que eu solicitei</h4>
+                            <h4 class="text-sm text-dark font-bold uppercase opacity-80">O.S. que eu solicitei</h4>
                         </div>
                         <span class="text-2xl font-black text-dark" id="dash-my-solicitations">0</span>
                     </div>
@@ -295,7 +295,7 @@
             </div>
         </div>
 
-        <!-- View: Lista de OS do Setor -->
+        <!-- View: Lista de O.S. do Setor -->
         <div id="view-sector-os" class="view-section hidden p-6 pb-40 max-w-4xl mx-auto slide-up">
             <div class="flex items-center gap-3 mb-6">
                 <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95"><i class="fas fa-arrow-left"></i></button>
@@ -337,7 +337,7 @@
             </div>
         </div>
 
-        <!-- View: Nova OS -->
+        <!-- View: Nova O.S. -->
         <!-- Modal: Tipo de Ocorrência (Interna/Externa) -->
         <div id="modal-occurrence-type" class="fixed inset-0 bg-black/60 z-[80] hidden flex-col items-center justify-center p-6">
             <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden slide-up">
@@ -443,7 +443,7 @@
             </form>
         </div>
 
-        <!-- View: Detalhes da OS -->
+        <!-- View: Detalhes da O.S. -->
         <div id="view-os-details" class="view-section hidden p-4 slide-up max-w-3xl mx-auto pb-40">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 no-print gap-3">
                 <button onclick="navigate('home')" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-gray-600 active:scale-95 shrink-0"><i class="fas fa-arrow-left"></i></button>
@@ -460,11 +460,11 @@
                     <button id="btn-delete-os" onclick="deleteOS()" class="px-4 py-2 bg-red-50 text-danger border border-red-200 text-sm font-bold rounded-lg shadow-sm hover:bg-red-100 transition flex items-center justify-center gap-2 hidden">
                         <i class="fas fa-trash-alt"></i> <span>Excluir</span>
                     </button>
-                    <button id="btn-print-os" onclick="printDocument('os')" class="px-4 py-2 bg-gray-200 text-dark text-sm font-bold rounded-lg shadow-sm hover:bg-gray-300 hidden col-span-2 sm:col-span-1"><i class="fas fa-print mr-1"></i> Imprimir OS</button>
+                    <button id="btn-print-os" onclick="printDocument('os')" class="px-4 py-2 bg-gray-200 text-dark text-sm font-bold rounded-lg shadow-sm hover:bg-gray-300 hidden col-span-2 sm:col-span-1"><i class="fas fa-print mr-1"></i> Imprimir O.S.</button>
                 </div>
             </div>
 
-            <!-- Ficha Normal OS -->
+            <!-- Ficha Normal O.S. -->
             <div id="print-area-os" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-5 border-b border-gray-100 flex justify-between items-start">
                     <div>
@@ -588,7 +588,7 @@
                             </div>
 
                             <button type="button" onclick="saveOSManagement()" class="w-full py-3 text-sm font-bold text-brand bg-dark rounded hover:bg-gray-800 transition shadow mt-2">
-                                Atualizar OS
+                                Atualizar O.S.
                             </button>
                         </form>
 
@@ -697,7 +697,7 @@
                             <thead class="text-xs text-gray-500 bg-gray-50 border-y uppercase font-bold">
                                 <tr>
                                     <th class="px-4 py-3">Data</th>
-                                    <th class="px-4 py-3 text-center">OS Emitidas</th>
+                                    <th class="px-4 py-3 text-center">O.S. Emitidas</th>
                                     <th class="px-4 py-3 text-center text-success">Resolvidas</th>
                                     <th class="px-4 py-3 text-center text-warning">Em Execução</th>
                                 </tr>
@@ -734,11 +734,11 @@
                 </div>
             </div>
 
-    <!-- Modal Detalhes Histórico OS (Read Only) -->
+    <!-- Modal Detalhes Histórico O.S. (Read Only) -->
     <div id="modal-history-os" class="fixed inset-0 bg-black/50 z-[70] hidden flex-col items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden slide-up flex flex-col h-auto max-h-[90vh]">
             <div class="bg-dark p-4 flex justify-between items-center text-brand shrink-0">
-                <h3 class="font-bold uppercase"><i class="fas fa-history mr-2"></i> Detalhes da OS Histórica</h3>
+                <h3 class="font-bold uppercase"><i class="fas fa-history mr-2"></i> Detalhes da O.S. Histórica</h3>
                 <button type="button" onclick="closeHistoryOSModal()" class="text-white hover:text-brand"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-5 overflow-y-auto" id="history-os-content">
@@ -931,7 +931,7 @@
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-requesters-section">
                     <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-user-tag text-brand mr-1"></i> Solicitantes Cadastrados</h3>
-                    <p class="text-xs text-gray-500 mb-3">Cadastre os nomes que aparecerão para seleção ao abrir uma OS. Isso evita erros de digitação e caracteres inválidos.</p>
+                    <p class="text-xs text-gray-500 mb-3">Cadastre os nomes que aparecerão para seleção ao abrir uma O.S. Isso evita erros de digitação e caracteres inválidos.</p>
                     <div class="flex gap-2 mb-3 admin-write">
                         <input type="text" id="new-requester-input" placeholder="Nome do solicitante..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
                         <button onclick="addRequester()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
@@ -996,7 +996,7 @@
 
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 class="font-bold text-sm mb-3 text-dark">Opções de Status da OS</h3>
+                    <h3 class="font-bold text-sm mb-3 text-dark">Opções de Status da O.S.</h3>
                     <div class="flex gap-2 mb-3 admin-write">
                         <input type="text" id="new-status-input" placeholder="Novo status..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
                         <button onclick="addStatus()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
@@ -1014,7 +1014,7 @@
             </div>
         </div>
 
-        <!-- BARRA INFERIOR COM BOTÃO DE NOVA OS DESTACADO -->
+        <!-- BARRA INFERIOR COM BOTÃO DE NOVA O.S. DESTACADO -->
         <div id="bottom-bar-new-os" class="fixed bottom-0 w-full px-6 py-4 z-40 bg-grayBg/90 backdrop-blur pointer-events-none hidden flex-col items-center">
             <button id="fab-main-btn" onclick="navigate('new-os')" class="pointer-events-auto w-full max-w-sm bg-dark text-brand font-black text-[13px] uppercase tracking-wider py-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all border-2 border-gray-800">
                 <i class="fas fa-plus-circle text-xl"></i> <span id="fab-main-label">Registrar Nova Ocorrência</span>
@@ -1904,7 +1904,7 @@
                             </div>
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
                                 <span class="block text-2xl font-black text-dark mb-1">${concludedCount}</span>
-                                <span class="text-[10px] font-bold text-gray-500 uppercase">OS Finalizadas</span>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase">O.S. Finalizadas</span>
                             </div>
                         </div>
 
@@ -2029,7 +2029,7 @@
             const filtersBlock = document.getElementById('concluidas-filters');
             if(isConcluidas) {
                 filtersBlock.classList.remove('hidden');
-                document.getElementById('list-sector-title').innerText = "OS Concluídas";
+                document.getElementById('list-sector-title').innerText = "O.S. Concluídas";
                 
                 const secSelect = document.getElementById('filter-c-sector');
                 if(secSelect.options.length <= 1) { 
@@ -2038,12 +2038,12 @@
                 }
             } else {
                 filtersBlock.classList.add('hidden');
-                if (isUrgentes) document.getElementById('list-sector-title').innerText = "OS Urgentes";
-                else if (isPendentes) document.getElementById('list-sector-title').innerText = "OS Pendentes";
+                if (isUrgentes) document.getElementById('list-sector-title').innerText = "O.S. Urgentes";
+                else if (isPendentes) document.getElementById('list-sector-title').innerText = "O.S. Pendentes";
                 else if (isAndamento) document.getElementById('list-sector-title').innerText = "Em Andamento";
                 else if (isMinhas) document.getElementById('list-sector-title').innerText = "Minhas Atividades";
                 else if (isLivres) document.getElementById('list-sector-title').innerText = "Atividades Livres";
-                else if (isMinhasSolicitacoes) document.getElementById('list-sector-title').innerText = "OS que eu solicitei";
+                else if (isMinhasSolicitacoes) document.getElementById('list-sector-title').innerText = "O.S. que eu solicitei";
                 else if (isTech) document.getElementById('list-sector-title').innerText = "Atividades: " + targetTech;
                 else document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
             }
@@ -2151,7 +2151,7 @@
 
             container.innerHTML = '';
             if(filtered.length === 0) {
-                container.innerHTML = `<div class="text-center p-8 text-gray-400 text-sm border-2 border-dashed rounded-xl border-gray-200">Nenhuma OS encontrada.</div>`;
+                container.innerHTML = `<div class="text-center p-8 text-gray-400 text-sm border-2 border-dashed rounded-xl border-gray-200">Nenhuma O.S. encontrada.</div>`;
                 return;
             }
 
@@ -2184,7 +2184,7 @@
             });
         }
 
-        // --- NOVA OS ---
+        // --- NOVA O.S. ---
         function populateNewOS() {
             try {
                 const select = document.getElementById('os-sector');
@@ -2395,7 +2395,7 @@
                     history: [{
                         date: new Date().toISOString(),
                         author: document.getElementById('os-requester').value || "Sistema",
-                        description: "OS Registrada com status 'Solicitada' - Tipo: " + (occurrenceType === 'externa' ? 'Externa' : 'Interna') + "."
+                        description: "O.S. Registrada com status 'Solicitada' - Tipo: " + (occurrenceType === 'externa' ? 'Externa' : 'Interna') + "."
                     }]
                 };
 
@@ -2436,7 +2436,7 @@
             }
         }
 
-        // --- GESTÃO DE OS ---
+        // --- GESTÃO DE O.S. ---
         function globalSearchOS() {
             const query = document.getElementById('global-search-os').value.trim();
             if(!query) return;
@@ -2695,12 +2695,12 @@
                 if (pHistory) {
                     pHistory.innerHTML = '';
                     let fullHistory = os.history ? [...os.history] : [];
-                    const hasCreation = fullHistory.some(h => h.description && h.description.includes('OS Registrada'));
+                    const hasCreation = fullHistory.some(h => h.description && h.description.toLowerCase().includes('registrada'));
                     if (!hasCreation && os.createdAt) {
                         fullHistory.unshift({
                             date: os.createdAt,
                             author: os.requester || 'Sistema',
-                            description: "OS Registrada"
+                            description: "O.S. Registrada"
                         });
                     }
 
@@ -2888,7 +2888,7 @@
                 if(oldStatus !== newStatus) {
                     showToast(`Status atualizado para '${newStatus}'. Pode avisar o solicitante via WhatsApp.`);
                 } else {
-                    showToast('OS Atualizada com sucesso no banco de dados.');
+                    showToast('O.S. Atualizada com sucesso no banco de dados.');
                 }
 
                 openOSDetails(dbId); 
@@ -2910,7 +2910,7 @@
                 history.push({
                     date: new Date().toISOString(),
                     author: myName,
-                    description: `OS assumida por '${myName}'.`
+                    description: `O.S. assumida por '${myName}'.`
                 });
 
                 await updateDoc(getOrderDoc(dbId), {
@@ -2947,7 +2947,7 @@
                 openOSDetails(dbId);
             } catch(e) {
                 console.error("Erro ao assumir:", e);
-                showToast("Erro ao assumir OS.");
+                showToast("Erro ao assumir O.S.");
             }
         }
 
@@ -4012,7 +4012,7 @@
         function gerarRelatorioEstoque() {
             const os = appState.currentOS;
             if (!os || !os.itemsUsed || os.itemsUsed.length === 0) {
-                showToast('Nenhum item registrado nesta OS');
+                showToast('Nenhum item registrado nesta O.S.');
                 return;
             }
 
@@ -4048,7 +4048,7 @@
                 <h1>📦 Relatório de Materiais Utilizados</h1>
                 <p class="sub">Gerado em ${hojeHora}</p>
                 <div class="info">
-                    <p><span>OS:</span> ${os.id}</p>
+                    <p><span>O.S.:</span> ${os.id}</p>
                     <p><span>Data:</span> ${dataHoje}</p>
                     <p><span>Setor:</span> ${os.sector || '-'}</p>
                     <p><span>Técnico:</span> ${os.assignedTo || '-'}</p>
@@ -4202,7 +4202,7 @@
             }
             document.getElementById('mach-detail-nextpm').innerText = nextPmText;
 
-            // Histórico Combinado (OS e Preventivas)
+            // Histórico Combinado (O.S. e Preventivas)
             const historyContainer = document.getElementById('mach-history-container');
             let combinedHistory = [];
 
@@ -4490,7 +4490,7 @@
                             y: { 
                                 type: 'linear', display: true, position: 'left', beginAtZero: true, 
                                 ticks: { precision: 0 },
-                                title: { display: true, text: 'Frequência (OS)' }
+                                title: { display: true, text: 'Frequência (O.S.)' }
                             },
                             y1: { 
                                 type: 'linear', display: true, position: 'right', beginAtZero: true, max: 105, 
@@ -4565,7 +4565,7 @@
             btn.innerHTML = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-70');
-            showToast(`Sincronização concluída! ${sucessos} OS enviadas.`);
+            showToast(`Sincronização concluída! ${sucessos} O.S. enviadas.`);
         }
         window.syncAllToSheets = syncAllToSheets;
 
