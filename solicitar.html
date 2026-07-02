@@ -78,9 +78,16 @@
                 <div id="external-fields" class="hidden space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Loja *</label>
-                        <select id="os-store" onchange="onStoreChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
-                            <option value="">Carregando lojas...</option>
-                        </select>
+                        <div class="relative">
+                            <input type="text" id="os-store-search" autocomplete="off"
+                                   oninput="filterStores(this.value)"
+                                   onfocus="filterStores(this.value)"
+                                   onblur="setTimeout(()=>{ const d=document.getElementById('store-dropdown-sol'); if(d) d.classList.add('hidden'); }, 200)"
+                                   class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all"
+                                   placeholder="Digite para buscar a loja...">
+                            <input type="hidden" id="os-store" value="">
+                            <ul id="store-dropdown-sol" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento com Problema *</label>
@@ -254,12 +261,6 @@
                     });
                     const stores = [...new Set(appState.externalEquipment.map(e => e.fantasia).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
                     appState.stores = stores;
-                    const storeSelect = document.getElementById('os-store');
-                    if (storeSelect) {
-                        storeSelect.innerHTML = stores.length
-                            ? '<option value="">Selecione a loja...</option>' + stores.map(s => `<option value="${s}">${s}</option>`).join('')
-                            : '<option value="">Nenhuma loja encontrada</option>';
-                    }
                 } catch(e) { console.warn("Erro ao carregar equipamentos externos:", e); }
 
                 // Carregar Solicitantes
@@ -377,7 +378,6 @@
             const internalEquipField = document.getElementById('internal-equipment-field');
             const externalFields = document.getElementById('external-fields');
             const sectorSelect = document.getElementById('os-sector');
-            const storeSelect = document.getElementById('os-store');
             const externalEquipSelect = document.getElementById('os-external-equipment');
 
             if (type === 'externa') {
@@ -385,16 +385,51 @@
                 internalEquipField.classList.add('hidden');
                 externalFields.classList.remove('hidden');
                 sectorSelect.removeAttribute('required');
-                storeSelect.setAttribute('required', 'required');
                 externalEquipSelect.setAttribute('required', 'required');
             } else {
                 internalFields.classList.remove('hidden');
                 internalEquipField.classList.remove('hidden');
                 externalFields.classList.add('hidden');
                 sectorSelect.setAttribute('required', 'required');
-                storeSelect.removeAttribute('required');
                 externalEquipSelect.removeAttribute('required');
             }
+        };
+
+        window.filterStores = function(val) {
+            const dropdown = document.getElementById('store-dropdown-sol');
+            if (!dropdown) return;
+            const term = (val || '').toLowerCase().trim();
+            const list = appState.stores || [];
+            const filtered = term ? list.filter(s => s.toLowerCase().includes(term)) : list;
+
+            // Se o texto digitado não bate mais com a loja selecionada, limpa a seleção
+            const hiddenStore = document.getElementById('os-store');
+            if (hiddenStore && hiddenStore.value && hiddenStore.value !== val) {
+                hiddenStore.value = '';
+                window.onStoreChange();
+            }
+
+            if (!filtered.length) {
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center italic">Nenhuma loja encontrada</li>';
+            } else {
+                dropdown.innerHTML = filtered.map(s =>
+                    `<li class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800"
+                         onmousedown="window.selectStore('${s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+                        <i class="fas fa-store text-yellow-500 mr-2 text-xs"></i>${s}
+                    </li>`
+                ).join('');
+            }
+            dropdown.classList.remove('hidden');
+        };
+
+        window.selectStore = function(name) {
+            const input = document.getElementById('os-store-search');
+            const hidden = document.getElementById('os-store');
+            if (input) input.value = name;
+            if (hidden) hidden.value = name;
+            const dropdown = document.getElementById('store-dropdown-sol');
+            if (dropdown) dropdown.classList.add('hidden');
+            window.onStoreChange();
         };
 
         window.onStoreChange = function() {
@@ -428,8 +463,9 @@
             if (occurrenceTypeCheck === 'externa') {
                 const storeVal = document.getElementById('os-store').value;
                 const equipVal = document.getElementById('os-external-equipment').value;
-                if (!storeVal) {
-                    showToast("Selecione a loja.");
+                if (!storeVal || !(appState.stores || []).includes(storeVal)) {
+                    showToast("Selecione a loja na lista sugerida.");
+                    document.getElementById('os-store-search').focus();
                     return;
                 }
                 if (!equipVal) {

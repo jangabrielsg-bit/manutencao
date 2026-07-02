@@ -868,7 +868,18 @@
         <div id="view-settings" class="view-section hidden p-6 max-w-md mx-auto slide-up pb-40">
             <h2 class="text-xl font-bold text-dark mb-6">Configurações</h2>
             <div class="space-y-4">
-                
+
+                <div id="settings-my-account-section" class="hidden bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-key text-brand mr-1"></i> Minha Conta</h3>
+                    <p class="text-xs text-gray-500 mb-3">Altere sua própria senha de acesso quando quiser.</p>
+                    <div class="space-y-2">
+                        <input type="password" id="my-account-current-pass" placeholder="Senha atual" autocomplete="current-password" class="w-full p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <input type="password" id="my-account-new-pass" placeholder="Nova senha" autocomplete="new-password" class="w-full p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <input type="password" id="my-account-confirm-pass" placeholder="Confirmar nova senha" autocomplete="new-password" class="w-full p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
+                        <button onclick="changeMyPassword()" class="w-full bg-dark text-brand py-2 rounded text-sm font-bold shadow-sm active:scale-95 transition">Salvar Nova Senha</button>
+                    </div>
+                </div>
+
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="font-bold text-sm mb-2 text-dark"><i class="fas fa-mobile-alt text-brand mr-1"></i> Instalar Aplicativo</h3>
                     <p class="text-xs text-gray-500 mb-4">Instale este sistema no seu dispositivo para acesso rápido na tela inicial.</p>
@@ -1117,6 +1128,11 @@
                     document.querySelectorAll('.maint-action').forEach(el => el.style.display = (isMaintOrAdmin || role === 'gestor') ? 'flex' : 'none');
                     document.querySelectorAll('.admin-action').forEach(el => el.style.display = (role === 'admin' || role === 'gestor') ? 'flex' : 'none');
                     document.body.classList.toggle('gestor-mode', role === 'gestor');
+                    const myAccountSection1 = document.getElementById('settings-my-account-section');
+                    if (myAccountSection1) {
+                        const canChangeOwnPassword1 = appState.currentUser && appState.currentUser.uid && appState.currentUser.role !== 'requester' && appState.currentUser.uid !== 'local-admin-mestre';
+                        myAccountSection1.classList.toggle('hidden', !canChangeOwnPassword1);
+                    }
                     if (role === 'admin' || role === 'gestor') {
                         document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
                         if(document.getElementById('btn-nav-analytics')) {
@@ -1513,6 +1529,11 @@
             document.querySelectorAll('.maint-action').forEach(el => el.style.display = (isMaintOrAdmin || role === 'gestor') ? 'flex' : 'none');
             document.querySelectorAll('.admin-action').forEach(el => el.style.display = (role === 'admin' || role === 'gestor') ? 'flex' : 'none');
             document.body.classList.toggle('gestor-mode', role === 'gestor');
+            const myAccountSection2 = document.getElementById('settings-my-account-section');
+            if (myAccountSection2) {
+                const canChangeOwnPassword2 = appState.currentUser && appState.currentUser.uid && appState.currentUser.role !== 'requester' && appState.currentUser.uid !== 'local-admin-mestre';
+                myAccountSection2.classList.toggle('hidden', !canChangeOwnPassword2);
+            }
 
             if (role === 'admin' || role === 'gestor') {
                 // Admin e Gestor veem o menu settings e o analytics (Gestor apenas visualiza, sem editar)
@@ -3358,6 +3379,45 @@
                 </div>
             `;
         }
+
+        async function changeMyPassword() {
+            const user = appState.currentUser;
+            if (!user || !user.uid || user.uid === 'local-admin-mestre' || user.role === 'requester') {
+                showToast("Ação não disponível para esta conta.");
+                return;
+            }
+
+            const current = document.getElementById('my-account-current-pass').value;
+            const novaSenha = document.getElementById('my-account-new-pass').value;
+            const confirmar = document.getElementById('my-account-confirm-pass').value;
+
+            if (user.pass && current !== user.pass) {
+                showToast("Senha atual incorreta.");
+                return;
+            }
+            if (!novaSenha || novaSenha.length < 4) {
+                showToast("A nova senha deve ter pelo menos 4 caracteres.");
+                return;
+            }
+            if (novaSenha !== confirmar) {
+                showToast("As senhas não coincidem.");
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, "users", user.uid), { pass: novaSenha });
+                appState.currentUser.pass = novaSenha;
+                localStorage.setItem('manut_session', JSON.stringify(appState.currentUser));
+                showToast("Senha alterada com sucesso!");
+                document.getElementById('my-account-current-pass').value = '';
+                document.getElementById('my-account-new-pass').value = '';
+                document.getElementById('my-account-confirm-pass').value = '';
+            } catch (err) {
+                console.error("Erro ao alterar senha:", err);
+                showToast("Erro ao alterar senha. Tente novamente.");
+            }
+        }
+        window.changeMyPassword = changeMyPassword;
 
         async function saveEditUser(uid) {
             const name = document.getElementById(`edit-u-name-${uid}`).value.trim();
