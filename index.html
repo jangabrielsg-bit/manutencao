@@ -232,6 +232,18 @@
                     </div>
                 </div>
 
+                <!-- Painel Gestor: Minhas Solicitações -->
+                <div id="gestor-quick-actions" class="mb-8 hidden">
+                    <h3 class="font-bold text-dark text-xs uppercase tracking-wider mb-4 ml-1 text-gray-500">Minhas Solicitações</h3>
+                    <div onclick="openMySolicitations()" class="bg-brand p-4 rounded-2xl shadow-sm border border-yellow-500 flex items-center justify-between cursor-pointer active:scale-95 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-white/20 text-dark flex items-center justify-center"><i class="fas fa-clipboard-list"></i></div>
+                            <h4 class="text-sm text-dark font-bold uppercase opacity-80">OS que eu solicitei</h4>
+                        </div>
+                        <span class="text-2xl font-black text-dark" id="dash-my-solicitations">0</span>
+                    </div>
+                </div>
+
                 </div>
 
                 <!-- ABA 2: SETORES -->
@@ -1715,8 +1727,12 @@
             let totalUrgentes = 0;
             let totalMinhas = 0;
             let totalLivres = 0;
+            let totalMinhasSolicitacoes = 0;
 
             appState.orders.forEach(o => {
+                if (appState.currentUser && appState.currentUser.name && o.requester === appState.currentUser.name) {
+                    totalMinhasSolicitacoes++;
+                }
                 const statusL = o.status ? o.status.toLowerCase() : '';
                 const isConcluido = statusL.includes('concluí') || statusL.includes('conclui');
                 const isCancelado = statusL.includes('cancelad');
@@ -1772,6 +1788,16 @@
                     document.getElementById('dash-free-tasks').innerText = totalLivres;
                 } else {
                     maintQuickActions.classList.add('hidden');
+                }
+            }
+
+            const gestorQuickActions = document.getElementById('gestor-quick-actions');
+            if (gestorQuickActions && appState.currentUser) {
+                if (appState.currentUser.role === 'gestor') {
+                    gestorQuickActions.classList.remove('hidden');
+                    document.getElementById('dash-my-solicitations').innerText = totalMinhasSolicitacoes;
+                } else {
+                    gestorQuickActions.classList.add('hidden');
                 }
             }
 
@@ -1972,6 +1998,12 @@
             navigate('sector-os');
         }
 
+        function openMySolicitations() {
+            appState.currentListSector = 'MINHAS_SOLICITACOES';
+            navigate('sector-os');
+        }
+        window.openMySolicitations = openMySolicitations;
+
         const getStatusStyles = (status) => {
             if(status === 'Concluída') return 'bg-gray-100 text-gray-500 border-gray-200';
             if(status === 'Solicitada') return 'bg-white text-gray-600 border-gray-300';
@@ -1990,6 +2022,7 @@
             const isAndamento = appState.currentListSector === 'ANDAMENTO';
             const isMinhas = appState.currentListSector === 'MINHAS';
             const isLivres = appState.currentListSector === 'LIVRES';
+            const isMinhasSolicitacoes = appState.currentListSector === 'MINHAS_SOLICITACOES';
             const isTech = appState.currentListSector && appState.currentListSector.startsWith('TECH:');
             const targetTech = isTech ? appState.currentListSector.split(':')[1] : null;
             
@@ -2010,6 +2043,7 @@
                 else if (isAndamento) document.getElementById('list-sector-title').innerText = "Em Andamento";
                 else if (isMinhas) document.getElementById('list-sector-title').innerText = "Minhas Atividades";
                 else if (isLivres) document.getElementById('list-sector-title').innerText = "Atividades Livres";
+                else if (isMinhasSolicitacoes) document.getElementById('list-sector-title').innerText = "OS que eu solicitei";
                 else if (isTech) document.getElementById('list-sector-title').innerText = "Atividades: " + targetTech;
                 else document.getElementById('list-sector-title').innerText = isMyHistory ? "Histórico Geral" : appState.currentListSector;
             }
@@ -2018,7 +2052,7 @@
             const machWrapper = document.getElementById('sector-machines-wrapper');
             const machContainer = document.getElementById('sector-machines-container');
             if (machWrapper && machContainer) {
-                const isSpecificSector = !isConcluidas && !isUrgentes && !isPendentes && !isAndamento && !isMinhas && !isLivres && !isTech && !isMyHistory;
+                const isSpecificSector = !isConcluidas && !isUrgentes && !isPendentes && !isAndamento && !isMinhas && !isLivres && !isMinhasSolicitacoes && !isTech && !isMyHistory;
                 
                 if (isSpecificSector) {
                     const sectorMachines = appState.machines.filter(m => m.sector === appState.currentListSector);
@@ -2093,6 +2127,8 @@
                 });
             } else if(isLivres) {
                 filtered = filtered.filter(o => !o.assignedTo && !isOStatusConcluido(o.status) && !isOStatusCancelado(o.status));
+            } else if(isMinhasSolicitacoes) {
+                filtered = filtered.filter(o => appState.currentUser && appState.currentUser.name && o.requester === appState.currentUser.name);
             } else if(isTech) {
                 filtered = filtered.filter(o => o.assignedTo && o.assignedTo.includes(targetTech));
             } else if(!isMyHistory) {
