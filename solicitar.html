@@ -185,8 +185,26 @@
             }
         });
 
+        function getUrlOrHashParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get(name)) return urlParams.get(name);
+            if (window.location.hash && window.location.hash.includes(name + '=')) {
+                const hashString = window.location.hash.substring(1);
+                const hashParams = new URLSearchParams(hashString);
+                return hashParams.get(name);
+            }
+            return null;
+        }
+
         async function loadInitialData() {
             try {
+                // Tipo de ocorrência vindo do QR Code
+                const tipoParam = getUrlOrHashParam('tipo');
+                if (tipoParam === 'externa' || tipoParam === 'interna') {
+                    const typeSelect = document.getElementById('os-occurrence-type');
+                    if (typeSelect) typeSelect.value = tipoParam;
+                }
+
                 // Carregar Setores
                 try {
                     const settingsSnap = await getDoc(doc(db, "settings", "general"));

@@ -905,11 +905,23 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-qrcode text-brand mr-1"></i> QR Code por Setor</h3>
-                    <p class="text-xs text-gray-500 mb-3">Selecione um setor para gerar o QR Code. Ao escanear, a tela já virá preenchida.</p>
-                    <select id="qr-sector-select" class="w-full mb-3 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand" onchange="generateQRCode()">
-                        <option value="">Geral (Sem setor predefinido)</option>
+                    <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-qrcode text-brand mr-1"></i> QR Code de Ocorrência</h3>
+                    <p class="text-xs text-gray-500 mb-3">Gere o QR Code para manutenção interna (por setor) ou externa (lojas). Ao escanear, a tela já virá preenchida.</p>
+
+                    <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Tipo de Ocorrência</label>
+                    <select id="qr-type-select" class="w-full mb-3 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand" onchange="onQrTypeChange()">
+                        <option value="interna" selected>Interna (por setor)</option>
+                        <option value="externa">Externa (lojas)</option>
                     </select>
+
+                    <div id="qr-sector-field">
+                        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Setor</label>
+                        <select id="qr-sector-select" class="w-full mb-3 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand" onchange="generateQRCode()">
+                            <option value="">Geral (Sem setor predefinido)</option>
+                        </select>
+                    </div>
+                    <p id="qr-external-hint" class="hidden text-xs text-gray-500 mb-3 italic">Este QR é único para todas as lojas: ao escanear, a pessoa escolhe a loja e o equipamento na própria tela.</p>
+
                     <div id="qrcode-container" class="flex justify-center mb-3 p-4 bg-gray-50 rounded-xl border border-gray-200"></div>
                     <button onclick="downloadQRCode()" class="w-full bg-dark text-brand font-bold py-2.5 rounded-lg shadow-sm active:scale-95 transition flex items-center justify-center gap-2 border border-gray-800">
                         <i class="fas fa-download"></i> Baixar QR Code
@@ -3727,14 +3739,36 @@
         // =====================================================
         // QR CODE
         // =====================================================
+        function onQrTypeChange() {
+            const typeSelect = document.getElementById('qr-type-select');
+            const sectorField = document.getElementById('qr-sector-field');
+            const externalHint = document.getElementById('qr-external-hint');
+            const isExterna = typeSelect && typeSelect.value === 'externa';
+            if (sectorField) sectorField.classList.toggle('hidden', isExterna);
+            if (externalHint) externalHint.classList.toggle('hidden', !isExterna);
+            generateQRCode();
+        }
+        window.onQrTypeChange = onQrTypeChange;
+
         function generateQRCode() {
             const container = document.getElementById('qrcode-container');
             if (!container) return;
             let url = new URL('solicitar.html', window.location.href).href;
-            const sectorSelect = document.getElementById('qr-sector-select');
-            if (sectorSelect && sectorSelect.value) {
-                url += '#setor=' + encodeURIComponent(sectorSelect.value);
+            const typeSelect = document.getElementById('qr-type-select');
+            const occType = typeSelect ? typeSelect.value : 'interna';
+
+            if (occType === 'externa') {
+                url += '#tipo=externa';
+            } else {
+                const sectorSelect = document.getElementById('qr-sector-select');
+                const params = [];
+                params.push('tipo=interna');
+                if (sectorSelect && sectorSelect.value) {
+                    params.push('setor=' + encodeURIComponent(sectorSelect.value));
+                }
+                url += '#' + params.join('&');
             }
+
             container.innerHTML = '';
             const size = 180;
             const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size + '&data=' + encodeURIComponent(url) + '&bgcolor=ffffff&color=1e293b&margin=10';
