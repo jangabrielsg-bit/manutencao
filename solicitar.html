@@ -56,23 +56,38 @@
                 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo da Ocorrência *</label>
-                    <select id="os-occurrence-type" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                    <select id="os-occurrence-type" required onchange="onOccurrenceTypeChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
                         <option value="interna" selected>Manutenção Interna</option>
                         <option value="externa">Manutenção Externa</option>
                     </select>
                 </div>
 
-                <div>
+                <div id="internal-fields">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor do Problema *</label>
-                    <select id="os-sector" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                    <select id="os-sector" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
                         <option value="">Carregando setores...</option>
                     </select>
                 </div>
 
-                <div>
+                <div id="internal-equipment-field">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento (Opcional)</label>
                     <input type="text" id="os-equipment" list="machines-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all" placeholder="Qual máquina ou aparelho?">
                     <datalist id="machines-list"></datalist>
+                </div>
+
+                <div id="external-fields" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Loja *</label>
+                        <select id="os-store" onchange="onStoreChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                            <option value="">Carregando lojas...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento com Problema *</label>
+                        <select id="os-external-equipment" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                            <option value="">Selecione a loja primeiro...</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -143,7 +158,9 @@
             photos: [],
             machines: [],
             leaders: [],
-            requesters: []
+            requesters: [],
+            externalEquipment: [],
+            stores: []
         };
 
         function showToast(msg) {
@@ -211,6 +228,22 @@
                     });
                 } catch(e) { console.warn("Erro ao carregar maquinas:", e); }
 
+                // Carregar Equipamentos Externos (Lojas)
+                try {
+                    const externalSnap = await getDocs(collection(db, "externalEquipment"));
+                    externalSnap.forEach(d => {
+                        appState.externalEquipment.push({ dbId: d.id, ...d.data() });
+                    });
+                    const stores = [...new Set(appState.externalEquipment.map(e => e.fantasia).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                    appState.stores = stores;
+                    const storeSelect = document.getElementById('os-store');
+                    if (storeSelect) {
+                        storeSelect.innerHTML = stores.length
+                            ? '<option value="">Selecione a loja...</option>' + stores.map(s => `<option value="${s}">${s}</option>`).join('')
+                            : '<option value="">Nenhuma loja encontrada</option>';
+                    }
+                } catch(e) { console.warn("Erro ao carregar equipamentos externos:", e); }
+
                 // Carregar Solicitantes
                 try {
                     const reqSnap = await getDocs(collection(db, "requesters"));
@@ -239,6 +272,7 @@
                 const form = document.getElementById('form-new-os');
                 if (overlay) overlay.classList.add('hidden');
                 if (form) form.classList.remove('hidden');
+                onOccurrenceTypeChange();
             }
         }
 
@@ -319,6 +353,50 @@
             if (dropdown) dropdown.classList.add('hidden');
         };
 
+        window.onOccurrenceTypeChange = function() {
+            const type = document.getElementById('os-occurrence-type').value;
+            const internalFields = document.getElementById('internal-fields');
+            const internalEquipField = document.getElementById('internal-equipment-field');
+            const externalFields = document.getElementById('external-fields');
+            const sectorSelect = document.getElementById('os-sector');
+            const storeSelect = document.getElementById('os-store');
+            const externalEquipSelect = document.getElementById('os-external-equipment');
+
+            if (type === 'externa') {
+                internalFields.classList.add('hidden');
+                internalEquipField.classList.add('hidden');
+                externalFields.classList.remove('hidden');
+                sectorSelect.removeAttribute('required');
+                storeSelect.setAttribute('required', 'required');
+                externalEquipSelect.setAttribute('required', 'required');
+            } else {
+                internalFields.classList.remove('hidden');
+                internalEquipField.classList.remove('hidden');
+                externalFields.classList.add('hidden');
+                sectorSelect.setAttribute('required', 'required');
+                storeSelect.removeAttribute('required');
+                externalEquipSelect.removeAttribute('required');
+            }
+        };
+
+        window.onStoreChange = function() {
+            const store = document.getElementById('os-store').value;
+            const externalEquipSelect = document.getElementById('os-external-equipment');
+            if (!store) {
+                externalEquipSelect.innerHTML = '<option value="">Selecione a loja primeiro...</option>';
+                return;
+            }
+            const items = appState.externalEquipment
+                .filter(e => e.fantasia === store)
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+
+            externalEquipSelect.innerHTML = items.length
+                ? '<option value="">Selecione o equipamento...</option>' + items.map(it =>
+                    `<option value="${it.patrimonio}" data-name="${it.name}">${it.name} - Patrimônio ${it.patrimonio}</option>`
+                  ).join('')
+                : '<option value="">Nenhum equipamento cadastrado nesta loja</option>';
+        };
+
         window.handleNewOS = async function(e) {
             e.preventDefault();
 
@@ -326,6 +404,25 @@
             if (!requesterInput) {
                 showToast("Informe o solicitante.");
                 return;
+            }
+
+            const occurrenceTypeCheck = document.getElementById('os-occurrence-type').value;
+            if (occurrenceTypeCheck === 'externa') {
+                const storeVal = document.getElementById('os-store').value;
+                const equipVal = document.getElementById('os-external-equipment').value;
+                if (!storeVal) {
+                    showToast("Selecione a loja.");
+                    return;
+                }
+                if (!equipVal) {
+                    showToast("Selecione o equipamento com problema.");
+                    return;
+                }
+            } else {
+                if (!document.getElementById('os-sector').value) {
+                    showToast("Selecione o setor do problema.");
+                    return;
+                }
             }
             if (appState.requesters && appState.requesters.length > 0) {
                 const valid = appState.requesters.some(r => r.name === requesterInput);
@@ -357,13 +454,29 @@
                 const newId = `OS-${year}${String(num).padStart(4, '0')}`;
 
                 const requester = document.getElementById('os-requester').value.trim();
-                const sector = document.getElementById('os-sector').value;
-                const equipment = document.getElementById('os-equipment').value.trim();
                 const description = document.getElementById('os-description').value.trim();
                 const occurrenceType = document.getElementById('os-occurrence-type').value;
 
-                const linkedMachine = equipment ? (appState.machines.find(m => m.name.toLowerCase() === equipment.toLowerCase()) || null) : null;
-                const linkedMachineId = linkedMachine ? linkedMachine.dbId : null;
+                let sector = '';
+                let equipment = '';
+                let externalStore = '';
+                let externalPatrimonio = '';
+                let externalEquipmentName = '';
+                let linkedMachineId = null;
+
+                if (occurrenceType === 'externa') {
+                    externalStore = document.getElementById('os-store').value;
+                    const externalEquipSelect = document.getElementById('os-external-equipment');
+                    externalPatrimonio = externalEquipSelect.value;
+                    externalEquipmentName = externalEquipSelect.selectedOptions[0] ? externalEquipSelect.selectedOptions[0].dataset.name : '';
+                    sector = externalStore;
+                    equipment = `${externalEquipmentName} (Patrimônio ${externalPatrimonio})`;
+                } else {
+                    sector = document.getElementById('os-sector').value;
+                    equipment = document.getElementById('os-equipment').value.trim();
+                    const linkedMachine = equipment ? (appState.machines.find(m => m.name.toLowerCase() === equipment.toLowerCase()) || null) : null;
+                    linkedMachineId = linkedMachine ? linkedMachine.dbId : null;
+                }
 
                 let assignedToVal = "";
                 if (occurrenceType === 'interna') {
@@ -383,6 +496,10 @@
                     equipment: equipment,
                     description: description,
                     type: occurrenceType,
+                    occurrenceType: occurrenceType,
+                    externalStore: externalStore,
+                    externalPatrimonio: externalPatrimonio,
+                    externalEquipmentName: externalEquipmentName,
                     status: 'Solicitada',
                     createdAt: new Date().toISOString(),
                     photos: appState.photos,
