@@ -42,6 +42,9 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Gestor: mesma visualização do Administrador, porém sem permissão de criar/editar/excluir */
+        body.gestor-mode .admin-write { display: none !important; }
+
         @media print {
             body * { visibility: hidden; }
             .no-print { display: none !important; }
@@ -87,6 +90,14 @@
                     <div class="text-left">
                         <h3 class="font-bold text-dark text-sm">Administrador</h3>
                         <p class="text-xs text-gray-500">Gestão completa do sistema</p>
+                    </div>
+                </button>
+
+                <button onclick="showLoginForm('gestor')" class="w-full bg-gray-200 border border-gray-300 hover:border-gray-400 p-4 rounded-xl flex items-center gap-4 transition-all shadow-sm active:scale-95">
+                    <div class="w-10 h-10 rounded bg-gray-300 text-gray-700 flex items-center justify-center text-xl"><i class="fas fa-eye"></i></div>
+                    <div class="text-left">
+                        <h3 class="font-bold text-dark text-sm">Gestor</h3>
+                        <p class="text-xs text-gray-500">Visualização completa e solicitação de OS</p>
                     </div>
                 </button>
             </div>
@@ -254,7 +265,7 @@
                 <div id="home-tab-external" class="hidden mb-8 mt-2">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-bold text-dark text-xs uppercase tracking-wider ml-1 text-gray-500">Equipamentos em Lojas Externas</h3>
-                        <button onclick="seedExternalEquipmentData()" class="bg-dark text-brand font-bold py-1.5 px-3 rounded-lg shadow-sm active:scale-95 transition flex items-center gap-2 text-xs">
+                        <button onclick="seedExternalEquipmentData()" class="admin-write bg-dark text-brand font-bold py-1.5 px-3 rounded-lg shadow-sm active:scale-95 transition flex items-center gap-2 text-xs">
                             <i class="fas fa-sync"></i> <span class="hidden sm:inline">Importar Planilha</span>
                         </button>
                     </div>
@@ -867,14 +878,14 @@
                     <p id="install-app-hint" class="text-[10px] text-center text-gray-400 mt-2 hidden">A instalação já foi realizada ou o navegador não suporta.</p>
                 </div>
 
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm admin-write">
                     <h3 class="font-bold text-sm mb-3 text-dark">Logo do Sistema</h3>
                     <input type="file" onchange="updateLogo(event)" class="text-xs w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brandLight file:text-brand hover:file:bg-yellow-100 transition">
                 </div>
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-users-section">
                     <h3 class="font-bold text-sm mb-3 text-dark">Gerenciar Usuários</h3>
-                    <form id="form-new-user" onsubmit="adminCreateUser(event)" class="space-y-3 mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <form id="form-new-user" onsubmit="adminCreateUser(event)" class="space-y-3 mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200 admin-write">
                         <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Novo Usuário</h4>
                         <input type="text" id="new-user-name" required placeholder="Nome Completo" class="w-full p-2 text-sm bg-white border border-gray-200 rounded outline-none focus:border-brand">
                         <input type="email" id="new-user-email" required placeholder="E-mail" class="w-full p-2 text-sm bg-white border border-gray-200 rounded outline-none focus:border-brand">
@@ -885,6 +896,7 @@
                             <option value="operacional_leader">Líder Operacional</option>
                             <option value="galp_leader">Líder Galpão</option>
                             <option value="admin">Administrador</option>
+                            <option value="gestor">Gestor</option>
                         </select>
                         <button type="submit" id="btn-create-user" class="w-full bg-dark text-brand py-2 rounded text-sm font-bold shadow-sm active:scale-95 transition">Criar Conta</button>
                     </form>
@@ -897,7 +909,7 @@
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-requesters-section">
                     <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-user-tag text-brand mr-1"></i> Solicitantes Cadastrados</h3>
                     <p class="text-xs text-gray-500 mb-3">Cadastre os nomes que aparecerão para seleção ao abrir uma OS. Isso evita erros de digitação e caracteres inválidos.</p>
-                    <div class="flex gap-2 mb-3">
+                    <div class="flex gap-2 mb-3 admin-write">
                         <input type="text" id="new-requester-input" placeholder="Nome do solicitante..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
                         <button onclick="addRequester()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
                     </div>
@@ -928,7 +940,7 @@
                     </button>
                 </div>
 
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-leader-names">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm admin-write" id="settings-leader-names">
                     <h3 class="font-bold text-sm mb-3 text-dark"><i class="fas fa-users-cog text-brand mr-1"></i> Nomes dos Papéis</h3>
                     <p class="text-xs text-gray-500 mb-3">Personalize os nomes exibidos para cada função no sistema.</p>
                     <div class="space-y-3">
@@ -951,7 +963,7 @@
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="font-bold text-sm mb-3 text-dark">Gerenciar Setores</h3>
-                    <div class="flex gap-2 mb-3">
+                    <div class="flex gap-2 mb-3 admin-write">
                         <input type="text" id="new-sector-input" placeholder="Novo setor..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
                         <button onclick="addSector()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
                     </div>
@@ -962,14 +974,14 @@
 
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="font-bold text-sm mb-3 text-dark">Opções de Status da OS</h3>
-                    <div class="flex gap-2 mb-3">
+                    <div class="flex gap-2 mb-3 admin-write">
                         <input type="text" id="new-status-input" placeholder="Novo status..." class="flex-1 p-2 text-sm bg-gray-50 border border-gray-200 rounded outline-none focus:border-brand">
                         <button onclick="addStatus()" class="bg-dark text-brand px-4 rounded text-sm font-bold shadow-sm active:scale-95 transition">Add</button>
                     </div>
                     <ul id="list-settings-statuses" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-1"></ul>
                 </div>
 
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm" id="settings-sync-section">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm admin-write" id="settings-sync-section">
                     <h3 class="font-bold text-sm mb-2 text-dark"><i class="fas fa-sync text-brand mr-1"></i> Sincronização</h3>
                     <p class="text-xs text-gray-500 mb-4">Envie todas as ordens de serviço existentes no banco para a sua planilha do Google.</p>
                     <button onclick="syncAllToSheets()" class="w-full bg-green-500 text-white font-bold py-2.5 rounded-lg shadow-sm active:scale-95 transition flex items-center justify-center gap-2 border border-green-600">
@@ -1102,9 +1114,10 @@
                     const role = appState.currentUser.role;
                     const isMaintOrAdmin = role === 'maintenance' || role === 'admin' || role === 'operacional_leader';
                     document.querySelectorAll('.req-action').forEach(el => el.style.display = isMaintOrAdmin ? 'none' : 'flex');
-                    document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaintOrAdmin ? 'flex' : 'none');
-                    document.querySelectorAll('.admin-action').forEach(el => el.style.display = role === 'admin' ? 'flex' : 'none');
-                    if (role === 'admin') {
+                    document.querySelectorAll('.maint-action').forEach(el => el.style.display = (isMaintOrAdmin || role === 'gestor') ? 'flex' : 'none');
+                    document.querySelectorAll('.admin-action').forEach(el => el.style.display = (role === 'admin' || role === 'gestor') ? 'flex' : 'none');
+                    document.body.classList.toggle('gestor-mode', role === 'gestor');
+                    if (role === 'admin' || role === 'gestor') {
                         document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
                         if(document.getElementById('btn-nav-analytics')) {
                             document.getElementById('btn-nav-analytics').style.display = 'flex';
@@ -1234,7 +1247,7 @@
             onSnapshot(collection(db, "users"), (snapshot) => {
                 appState.registeredUsers = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
                 // Se estiver na tela de configurações e for admin, atualiza a lista de usuários
-                if (currentViewId === 'settings' && appState.currentUser && appState.currentUser.role === 'admin') {
+                if (currentViewId === 'settings' && appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'gestor')) {
                     renderUsersSettings();
                 }
             }, (err) => {
@@ -1244,7 +1257,7 @@
             // Listener de Solicitantes
             onSnapshot(collection(db, "requesters"), (snapshot) => {
                 appState.requesters = snapshot.docs.map(d => ({ uid: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-                if (currentViewId === 'settings' && appState.currentUser && appState.currentUser.role === 'admin') {
+                if (currentViewId === 'settings' && appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'gestor')) {
                     renderRequestersSettings();
                 }
             }, (err) => console.warn("Erro ao ler solicitantes", err.message));
@@ -1391,7 +1404,7 @@
             const form = document.getElementById('form-login-credentials');
             form.classList.remove('hidden');
             document.getElementById('login-role-intent').value = role;
-            document.getElementById('login-title').innerText = role === 'admin' ? 'Acesso Administrador' : 'Acesso Manutenção';
+            document.getElementById('login-title').innerText = role === 'admin' ? 'Acesso Administrador' : (role === 'gestor' ? 'Acesso Gestor' : 'Acesso Manutenção');
         }
 
         function hideLoginForm() {
@@ -1497,11 +1510,12 @@
             
             const isMaintOrAdmin = role === 'maintenance' || role === 'admin' || role === 'operacional_leader';
             document.querySelectorAll('.req-action').forEach(el => el.style.display = isMaintOrAdmin ? 'none' : 'flex');
-            document.querySelectorAll('.maint-action').forEach(el => el.style.display = isMaintOrAdmin ? 'flex' : 'none');
-            document.querySelectorAll('.admin-action').forEach(el => el.style.display = role === 'admin' ? 'flex' : 'none');
+            document.querySelectorAll('.maint-action').forEach(el => el.style.display = (isMaintOrAdmin || role === 'gestor') ? 'flex' : 'none');
+            document.querySelectorAll('.admin-action').forEach(el => el.style.display = (role === 'admin' || role === 'gestor') ? 'flex' : 'none');
+            document.body.classList.toggle('gestor-mode', role === 'gestor');
 
-            if (role === 'admin') {
-                // Admin vê o menu settings e o analytics
+            if (role === 'admin' || role === 'gestor') {
+                // Admin e Gestor veem o menu settings e o analytics (Gestor apenas visualiza, sem editar)
                 document.querySelector('[onclick="navigate(\'settings\')"]').style.display = 'flex';
                 const analyticsBtn = document.getElementById('btn-nav-analytics');
                 if (analyticsBtn) {
@@ -1558,6 +1572,7 @@
             document.getElementById('main-header').classList.add('hidden');
             document.getElementById('main-content').classList.add('hidden');
             document.getElementById('bottom-bar-new-os').classList.add('hidden');
+            document.body.classList.remove('gestor-mode');
         }
 
         function navigate(viewId) {
@@ -2926,7 +2941,7 @@
         // --- CONFIGURAÇÕES DO SISTEMA ---
         function renderSettings() {
             // Só ouve os usuários se for admin e estiver na tela de configurações
-            if (appState.currentUser && appState.currentUser.role === 'admin') {
+            if (appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'gestor')) {
                 renderUsersSettings();
                 renderRequestersSettings();
             }
@@ -2946,7 +2961,7 @@
                     ulSectors.innerHTML += `
                         <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                             <span class="font-medium">${s.name}</span>
-                            <div class="flex gap-3">
+                            <div class="flex gap-3 admin-write">
                                 <button onclick="editSector(${idx})" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteSector(${idx})" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
                             </div>
@@ -2961,7 +2976,7 @@
                     ulCollabs.innerHTML += `
                         <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                             <span class="font-medium">${c}</span>
-                            <div class="flex gap-3">
+                            <div class="flex gap-3 admin-write">
                                 <button onclick="editCollaborator(${idx})" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteCollaborator(${idx})" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
                             </div>
@@ -2976,7 +2991,7 @@
                     ulStatuses.innerHTML += `
                         <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                             <span class="font-medium">${st}</span>
-                            <div class="flex gap-3">
+                            <div class="flex gap-3 admin-write">
                                 <button onclick="editStatus(${idx})" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteStatus(${idx})" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
                             </div>
@@ -3240,7 +3255,7 @@
                 ul.innerHTML += `
                     <li class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                         <span class="font-medium text-dark text-sm"><i class="fas fa-user text-brand mr-2 text-xs"></i>${r.name}</span>
-                        <button onclick="deleteRequester('${r.uid}', '${r.name.replace(/'/g, "\\'")}')" class="text-danger hover:text-red-600 transition ml-2"><i class="fas fa-trash text-xs"></i></button>
+                        <button onclick="deleteRequester('${r.uid}', '${r.name.replace(/'/g, "\\'")}')" class="admin-write text-danger hover:text-red-600 transition ml-2"><i class="fas fa-trash text-xs"></i></button>
                     </li>
                 `;
             });
@@ -3303,14 +3318,14 @@
             if (!ulUsers) return;
             ulUsers.innerHTML = '';
             (appState.registeredUsers || []).forEach(u => {
-                const roleLabel = u.role === 'maintenance' ? 'Manutenção' : (u.role === 'operacional_leader' ? 'Líder Operacional' : (u.role === 'galp_leader' ? 'Líder Galpão' : (u.role === 'admin' ? 'Admin' : u.role)));
+                const roleLabel = u.role === 'maintenance' ? 'Manutenção' : (u.role === 'operacional_leader' ? 'Líder Operacional' : (u.role === 'galp_leader' ? 'Líder Galpão' : (u.role === 'admin' ? 'Admin' : (u.role === 'gestor' ? 'Gestor' : u.role))));
                 ulUsers.innerHTML += `
                     <li id="user-li-${u.uid}" class="flex justify-between items-center p-2.5 bg-gray-50 rounded border border-gray-200 text-gray-700 shadow-sm">
                         <div>
                             <div class="font-medium text-dark">${u.name}</div>
                             <div class="text-[10px] text-gray-500">${u.email} <span class="bg-gray-200 px-1 rounded ml-1 text-gray-600 uppercase font-bold">${roleLabel}</span></div>
                         </div>
-                        <div class="flex gap-3 shrink-0">
+                        <div class="flex gap-3 shrink-0 admin-write">
                             <button onclick="editUser('${u.uid}')" class="text-warning hover:text-yellow-600 transition"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteUser('${u.uid}', '${u.name}')" class="text-danger hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
                         </div>
@@ -3332,7 +3347,9 @@
                     <select id="edit-u-role-${uid}" class="w-full p-2 text-xs border border-gray-200 rounded outline-none focus:border-brand">
                         <option value="maintenance" ${u.role === 'maintenance'?'selected':''}>Manutenção</option>
                         <option value="operacional_leader" ${u.role === 'operacional_leader'?'selected':''}>Líder Operacional</option>
+                        <option value="galp_leader" ${u.role === 'galp_leader'?'selected':''}>Líder Galpão</option>
                         <option value="admin" ${u.role === 'admin'?'selected':''}>Administrador</option>
+                        <option value="gestor" ${u.role === 'gestor'?'selected':''}>Gestor</option>
                     </select>
                     <div class="flex gap-2 justify-end mt-2">
                         <button onclick="renderUsersSettings()" class="bg-gray-200 text-dark px-3 py-1.5 rounded text-xs font-bold shadow-sm active:scale-95">Cancelar</button>
