@@ -42,29 +42,63 @@
             
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Seu Nome / Solicitante *</label>
-                    <input type="text" id="os-requester" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all" placeholder="Como podemos te chamar?">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Solicitante *</label>
+                    <div class="relative">
+                        <input type="text" id="os-requester" autocomplete="off"
+                               oninput="filterRequesters(this.value)"
+                               onfocus="filterRequesters(this.value)"
+                               onblur="setTimeout(()=>{ const d=document.getElementById('requester-dropdown-sol'); if(d) d.classList.add('hidden'); }, 200)"
+                               class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all"
+                               placeholder="Digite para buscar...">
+                        <ul id="requester-dropdown-sol" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                    </div>
                 </div>
                 
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo da Ocorrência *</label>
-                    <select id="os-occurrence-type" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                    <select id="os-occurrence-type" required onchange="onOccurrenceTypeChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
                         <option value="interna" selected>Manutenção Interna</option>
                         <option value="externa">Manutenção Externa</option>
                     </select>
                 </div>
 
-                <div>
+                <div id="internal-fields">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor do Problema *</label>
-                    <select id="os-sector" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                    <select id="os-sector" onchange="onSectorChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
                         <option value="">Carregando setores...</option>
                     </select>
                 </div>
 
-                <div>
+                <div id="internal-equipment-field">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento (Opcional)</label>
-                    <input type="text" id="os-equipment" list="machines-list" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all" placeholder="Qual máquina ou aparelho?">
-                    <datalist id="machines-list"></datalist>
+                    <select id="os-equipment-select" onchange="onInternalEquipmentChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                        <option value="">Selecione o setor primeiro...</option>
+                    </select>
+                    <div id="os-equipment-other-container" class="mt-2 hidden">
+                        <input type="text" id="os-equipment-other" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all" placeholder="Digite o nome do equipamento...">
+                    </div>
+                </div>
+
+                <div id="external-fields" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Loja *</label>
+                        <div class="relative">
+                            <input type="text" id="os-store-search" autocomplete="off"
+                                   oninput="filterStores(this.value)"
+                                   onfocus="filterStores(this.value)"
+                                   onblur="setTimeout(()=>{ const d=document.getElementById('store-dropdown-sol'); if(d) d.classList.add('hidden'); }, 200)"
+                                   class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all"
+                                   placeholder="Digite para buscar a loja...">
+                            <input type="hidden" id="os-store" value="">
+                            <ul id="store-dropdown-sol" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento com Problema *</label>
+                        <select id="os-external-equipment" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
+                            <option value="">Selecione a loja primeiro...</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -114,7 +148,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -128,13 +162,18 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        const db = initializeFirestore(app, {
+            localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+        });
         const auth = getAuth(app);
 
         let appState = {
             photos: [],
             machines: [],
-            leaders: []
+            leaders: [],
+            requesters: [],
+            externalEquipment: [],
+            stores: []
         };
 
         function showToast(msg) {
@@ -159,8 +198,26 @@
             }
         });
 
+        function getUrlOrHashParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get(name)) return urlParams.get(name);
+            if (window.location.hash && window.location.hash.includes(name + '=')) {
+                const hashString = window.location.hash.substring(1);
+                const hashParams = new URLSearchParams(hashString);
+                return hashParams.get(name);
+            }
+            return null;
+        }
+
         async function loadInitialData() {
             try {
+                // Tipo de ocorrência vindo do QR Code
+                const tipoParam = getUrlOrHashParam('tipo');
+                if (tipoParam === 'externa' || tipoParam === 'interna') {
+                    const typeSelect = document.getElementById('os-occurrence-type');
+                    if (typeSelect) typeSelect.value = tipoParam;
+                }
+
                 // Carregar Setores
                 try {
                     const settingsSnap = await getDoc(doc(db, "settings", "general"));
@@ -184,6 +241,9 @@
 
                         if (setorParam) {
                             sectorSelect.value = setorParam;
+                            setTimeout(() => {
+                                if (typeof window.onSectorChange === 'function') window.onSectorChange();
+                            }, 50);
                         }
                     } else {
                         sectorSelect.innerHTML = '<option value="">Nenhum setor encontrado</option>';
@@ -193,14 +253,34 @@
                 // Carregar Maquinas
                 try {
                     const machinesSnap = await getDocs(collection(db, "machines"));
-                    const datalist = document.getElementById('machines-list');
-                    datalist.innerHTML = '';
                     machinesSnap.forEach(d => {
-                        const m = d.data();
-                        appState.machines.push({ dbId: d.id, ...m });
-                        datalist.innerHTML += `<option value="${m.name}"></option>`;
+                        appState.machines.push({ dbId: d.id, ...d.data() });
                     });
+                    if (sectorSelect.value) {
+                        setTimeout(() => {
+                            if (typeof window.onSectorChange === 'function') window.onSectorChange();
+                        }, 50);
+                    }
                 } catch(e) { console.warn("Erro ao carregar maquinas:", e); }
+
+                // Carregar Equipamentos Externos (Lojas)
+                try {
+                    const externalSnap = await getDocs(collection(db, "externalEquipment"));
+                    externalSnap.forEach(d => {
+                        appState.externalEquipment.push({ dbId: d.id, ...d.data() });
+                    });
+                    const stores = [...new Set(appState.externalEquipment.map(e => e.fantasia).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                    appState.stores = stores;
+                } catch(e) { console.warn("Erro ao carregar equipamentos externos:", e); }
+
+                // Carregar Solicitantes
+                try {
+                    const reqSnap = await getDocs(collection(db, "requesters"));
+                    reqSnap.forEach(d => {
+                        appState.requesters.push({ uid: d.id, ...d.data() });
+                    });
+                    appState.requesters.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                } catch(e) { console.warn("Erro ao carregar solicitantes:", e); }
 
                 // Carregar Lideres
                 try {
@@ -221,6 +301,7 @@
                 const form = document.getElementById('form-new-os');
                 if (overlay) overlay.classList.add('hidden');
                 if (form) form.classList.remove('hidden');
+                onOccurrenceTypeChange();
             }
         }
 
@@ -275,9 +356,198 @@
             renderPhotos();
         };
 
+        window.filterRequesters = function(val) {
+            const dropdown = document.getElementById('requester-dropdown-sol');
+            if (!dropdown) return;
+            const term = (val || '').toLowerCase().trim();
+            const list = appState.requesters || [];
+            const filtered = term ? list.filter(r => r.name.toLowerCase().includes(term)) : list;
+            if (!filtered.length) {
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center italic">Nenhum solicitante encontrado</li>';
+            } else {
+                dropdown.innerHTML = filtered.map(r =>
+                    `<li class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800"
+                         onmousedown="window.selectRequester('${r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+                        <i class="fas fa-user text-yellow-500 mr-2 text-xs"></i>${r.name}
+                    </li>`
+                ).join('');
+            }
+            dropdown.classList.remove('hidden');
+        };
+
+        window.selectRequester = function(name) {
+            const input = document.getElementById('os-requester');
+            if (input) input.value = name;
+            const dropdown = document.getElementById('requester-dropdown-sol');
+            if (dropdown) dropdown.classList.add('hidden');
+        };
+
+        window.onOccurrenceTypeChange = function() {
+            const type = document.getElementById('os-occurrence-type').value;
+            const internalFields = document.getElementById('internal-fields');
+            const internalEquipField = document.getElementById('internal-equipment-field');
+            const externalFields = document.getElementById('external-fields');
+            const sectorSelect = document.getElementById('os-sector');
+            const externalEquipSelect = document.getElementById('os-external-equipment');
+
+            if (type === 'externa') {
+                internalFields.classList.add('hidden');
+                internalEquipField.classList.add('hidden');
+                externalFields.classList.remove('hidden');
+                sectorSelect.removeAttribute('required');
+                externalEquipSelect.setAttribute('required', 'required');
+            } else {
+                internalFields.classList.remove('hidden');
+                internalEquipField.classList.remove('hidden');
+                externalFields.classList.add('hidden');
+                sectorSelect.setAttribute('required', 'required');
+                externalEquipSelect.removeAttribute('required');
+            }
+        };
+
+        window.onSectorChange = function() {
+            const sector = document.getElementById('os-sector').value;
+            const equipSelect = document.getElementById('os-equipment-select');
+            const otherContainer = document.getElementById('os-equipment-other-container');
+            const otherInput = document.getElementById('os-equipment-other');
+            
+            // Clear other fields
+            otherContainer.classList.add('hidden');
+            otherInput.value = '';
+
+            if (!sector) {
+                equipSelect.innerHTML = '<option value="">Selecione o setor primeiro...</option>';
+                return;
+            }
+
+            // Filter machines by sector
+            const machines = appState.machines
+                .filter(m => m.sector && m.sector.toLowerCase() === sector.toLowerCase())
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+
+            let optionsHtml = '<option value="">Selecione o equipamento...</option>';
+            machines.forEach(m => {
+                optionsHtml += `<option value="${m.dbId}" data-name="${m.name}" data-patrimony="${m.patrimony || ''}">${m.name}${m.patrimony && m.patrimony !== '0000' ? ' - Pat: ' + m.patrimony : ''}</option>`;
+            });
+            optionsHtml += '<option value="outro">Outro (digitar nome)</option>';
+            equipSelect.innerHTML = optionsHtml;
+        };
+
+        window.onInternalEquipmentChange = function() {
+            const equipSelect = document.getElementById('os-equipment-select');
+            const otherContainer = document.getElementById('os-equipment-other-container');
+            const otherInput = document.getElementById('os-equipment-other');
+            
+            if (equipSelect.value === 'outro') {
+                otherContainer.classList.remove('hidden');
+                otherInput.focus();
+            } else {
+                otherContainer.classList.add('hidden');
+                otherInput.value = '';
+            }
+        };
+
+        window.filterStores = function(val) {
+            const dropdown = document.getElementById('store-dropdown-sol');
+            if (!dropdown) return;
+            const term = (val || '').toLowerCase().trim();
+            const list = appState.stores || [];
+            const filtered = term ? list.filter(s => s.toLowerCase().includes(term)) : list;
+
+            // Se o texto digitado não bate mais com a loja selecionada, limpa a seleção
+            const hiddenStore = document.getElementById('os-store');
+            if (hiddenStore && hiddenStore.value && hiddenStore.value !== val) {
+                hiddenStore.value = '';
+                window.onStoreChange();
+            }
+
+            if (!filtered.length) {
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center italic">Nenhuma loja encontrada</li>';
+            } else {
+                dropdown.innerHTML = filtered.map(s =>
+                    `<li class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800"
+                         onmousedown="window.selectStore('${s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+                        <i class="fas fa-store text-yellow-500 mr-2 text-xs"></i>${s}
+                    </li>`
+                ).join('');
+            }
+            dropdown.classList.remove('hidden');
+        };
+
+        window.selectStore = function(name) {
+            const input = document.getElementById('os-store-search');
+            const hidden = document.getElementById('os-store');
+            if (input) input.value = name;
+            if (hidden) hidden.value = name;
+            const dropdown = document.getElementById('store-dropdown-sol');
+            if (dropdown) dropdown.classList.add('hidden');
+            window.onStoreChange();
+        };
+
+        window.onStoreChange = function() {
+            const store = document.getElementById('os-store').value;
+            const externalEquipSelect = document.getElementById('os-external-equipment');
+            if (!store) {
+                externalEquipSelect.innerHTML = '<option value="">Selecione a loja primeiro...</option>';
+                return;
+            }
+            const items = appState.externalEquipment
+                .filter(e => e.fantasia === store)
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+
+            externalEquipSelect.innerHTML = items.length
+                ? '<option value="">Selecione o equipamento...</option>' + items.map(it =>
+                    `<option value="${it.patrimonio}" data-name="${it.name}">${it.name} - Patrimônio ${it.patrimonio}</option>`
+                  ).join('')
+                : '<option value="">Nenhum equipamento cadastrado nesta loja</option>';
+        };
+
         window.handleNewOS = async function(e) {
             e.preventDefault();
-            
+
+            const requesterInput = document.getElementById('os-requester').value.trim();
+            if (!requesterInput) {
+                showToast("Informe o solicitante.");
+                return;
+            }
+
+            const occurrenceTypeCheck = document.getElementById('os-occurrence-type').value;
+            if (occurrenceTypeCheck === 'externa') {
+                const storeVal = document.getElementById('os-store').value;
+                const equipVal = document.getElementById('os-external-equipment').value;
+                if (!storeVal || !(appState.stores || []).includes(storeVal)) {
+                    showToast("Selecione a loja na lista sugerida.");
+                    document.getElementById('os-store-search').focus();
+                    return;
+                }
+                if (!equipVal) {
+                    showToast("Selecione o equipamento com problema.");
+                    return;
+                }
+            } else {
+                if (!document.getElementById('os-sector').value) {
+                    showToast("Selecione o setor do problema.");
+                    return;
+                }
+                const equipSelect = document.getElementById('os-equipment-select');
+                if (equipSelect.value === 'outro') {
+                    const otherInput = document.getElementById('os-equipment-other');
+                    if (!otherInput.value.trim()) {
+                        showToast("Digite o nome do equipamento.");
+                        otherInput.focus();
+                        return;
+                    }
+                }
+            }
+            if (appState.requesters && appState.requesters.length > 0) {
+                const valid = appState.requesters.some(r => r.name === requesterInput);
+                if (!valid) {
+                    showToast("Selecione seu nome da lista.");
+                    document.getElementById('os-requester').focus();
+                    return;
+                }
+            }
+
             const btn = document.getElementById('btn-submit');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
@@ -299,13 +569,40 @@
                 const newId = `OS-${year}${String(num).padStart(4, '0')}`;
 
                 const requester = document.getElementById('os-requester').value.trim();
-                const sector = document.getElementById('os-sector').value;
-                const equipment = document.getElementById('os-equipment').value.trim();
                 const description = document.getElementById('os-description').value.trim();
                 const occurrenceType = document.getElementById('os-occurrence-type').value;
 
-                const linkedMachine = equipment ? (appState.machines.find(m => m.name.toLowerCase() === equipment.toLowerCase()) || null) : null;
-                const linkedMachineId = linkedMachine ? linkedMachine.dbId : null;
+                let sector = '';
+                let equipment = '';
+                let externalStore = '';
+                let externalPatrimonio = '';
+                let externalEquipmentName = '';
+                let linkedMachineId = null;
+
+                if (occurrenceType === 'externa') {
+                    externalStore = document.getElementById('os-store').value;
+                    const externalEquipSelect = document.getElementById('os-external-equipment');
+                    externalPatrimonio = externalEquipSelect.value;
+                    externalEquipmentName = externalEquipSelect.selectedOptions[0] ? externalEquipSelect.selectedOptions[0].dataset.name : '';
+                    sector = externalStore;
+                    equipment = `${externalEquipmentName} (Patrimônio ${externalPatrimonio})`;
+                } else {
+                    sector = document.getElementById('os-sector').value;
+                    const equipSelect = document.getElementById('os-equipment-select');
+                    if (equipSelect.value === 'outro') {
+                        equipment = document.getElementById('os-equipment-other').value.trim();
+                        linkedMachineId = null;
+                    } else if (equipSelect.value) {
+                        const selectedOpt = equipSelect.selectedOptions[0];
+                        const name = selectedOpt.dataset.name;
+                        const pat = selectedOpt.dataset.patrimony;
+                        equipment = name + (pat && pat !== '0000' ? ` (Patrimônio ${pat})` : '');
+                        linkedMachineId = equipSelect.value;
+                    } else {
+                        equipment = '';
+                        linkedMachineId = null;
+                    }
+                }
 
                 let assignedToVal = "";
                 if (occurrenceType === 'interna') {
@@ -325,6 +622,10 @@
                     equipment: equipment,
                     description: description,
                     type: occurrenceType,
+                    occurrenceType: occurrenceType,
+                    externalStore: externalStore,
+                    externalPatrimonio: externalPatrimonio,
+                    externalEquipmentName: externalEquipmentName,
                     status: 'Solicitada',
                     createdAt: new Date().toISOString(),
                     photos: appState.photos,
@@ -335,7 +636,7 @@
                     history: [{
                         date: new Date().toISOString(),
                         author: requester || "Sistema",
-                        description: "OS Registrada via App QR Code com status 'Solicitada' - Tipo: " + (occurrenceType === 'externa' ? 'Externa' : 'Interna')
+                        description: "O.S. Registrada via App QR Code com status 'Solicitada' - Tipo: " + (occurrenceType === 'externa' ? 'Externa' : 'Interna')
                     }],
                     linkedMachineId: linkedMachineId
                 };
@@ -372,7 +673,7 @@
 
             } catch (error) {
                 console.error("Erro:", error);
-                showToast("Erro ao registrar OS. Tente novamente.");
+                showToast("Erro ao registrar O.S. Tente novamente.");
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Solicitação';
             }
