@@ -1303,19 +1303,33 @@
                 }
             }, (err) => console.warn("Erro ao ler solicitantes", err.message));
 
-            // Listener de Máquinas
-            onSnapshot(collection(db, "machines"), (snapshot) => {
-                appState.machines = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
-                if(typeof updatePMAlerts === 'function') updatePMAlerts();
-                if(currentViewId === 'machines' && typeof renderMachinesList === 'function') renderMachinesList();
-                if(currentViewId === 'os-details' && typeof populateEquipmentSelect === 'function') populateEquipmentSelect();
-            }, (err) => console.warn("Erro ao ler máquinas", err.message));
+            // Carregar Máquinas uma única vez via getDocs (otimização de leituras)
+            async function loadMachinesData() {
+                try {
+                    const snapshot = await getDocs(collection(db, "machines"));
+                    appState.machines = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
+                    if(typeof updatePMAlerts === 'function') updatePMAlerts();
+                    if(currentViewId === 'machines' && typeof renderMachinesList === 'function') renderMachinesList();
+                    if(currentViewId === 'os-details' && typeof populateEquipmentSelect === 'function') populateEquipmentSelect();
+                } catch(e) {
+                    console.warn("Erro ao carregar máquinas:", e.message);
+                }
+            }
+            window.loadMachinesData = loadMachinesData;
+            loadMachinesData();
 
-            // Listener de Equipamentos Externos (Lojas)
-            onSnapshot(collection(db, "externalEquipment"), (snapshot) => {
-                appState.externalEquipment = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
-                if(currentViewId === 'home' && typeof renderExternalEquipmentList === 'function') renderExternalEquipmentList();
-            }, (err) => console.warn("Erro ao ler equipamentos externos", err.message));
+            // Carregar Equipamentos Externos uma única vez (otimização de leituras)
+            async function loadExternalEquipmentData() {
+                try {
+                    const snapshot = await getDocs(collection(db, "externalEquipment"));
+                    appState.externalEquipment = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
+                    if(currentViewId === 'home' && typeof renderExternalEquipmentList === 'function') renderExternalEquipmentList();
+                } catch(e) {
+                    console.warn("Erro ao carregar equipamentos externos:", e.message);
+                }
+            }
+            window.loadExternalEquipmentData = loadExternalEquipmentData;
+            loadExternalEquipmentData();
         }
 
         // Inicia a aplicação chamando a função
@@ -3782,13 +3796,14 @@
 
         function renderMachinesList() {
             const container = document.getElementById('machines-list-container');
-            const term = document.getElementById('search-machine').value.toLowerCase();
+            const term = document.getElementById('search-machine').value.toLowerCase().trim();
             
             let filtered = [...appState.machines];
             if(term) {
                 filtered = filtered.filter(m => 
                     (m.name && m.name.toLowerCase().includes(term)) || 
-                    (m.patrimony && m.patrimony.toLowerCase().includes(term))
+                    (m.patrimony && String(m.patrimony).toLowerCase().includes(term)) ||
+                    (m.sector && m.sector.toLowerCase().includes(term))
                 );
             }
 
@@ -3809,40 +3824,101 @@
                 return;
             }
 
-            const now = new Date();
+            // Group by sector
+            const bySector = {};
             filtered.forEach(m => {
-                let statusHtml = '';
-                let isOverdue = false;
-                if (!m.lastPmDate) {
-                    statusHtml = `<span class="text-[10px] bg-red-100 text-danger border border-red-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-triangle"></i> Sem Prev.</span>`;
-                    isOverdue = true;
-                } else {
-                    const lastPm = new Date(m.lastPmDate + 'T00:00:00');
-                    const diffTime = Math.abs(now - lastPm);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    const remaining = (m.pmInterval || 30) - diffDays;
-                    
-                    if (remaining < 0) {
-                        statusHtml = `<span class="text-[10px] bg-red-100 text-danger border border-red-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-triangle"></i> Atrasada ${Math.abs(remaining)}d</span>`;
-                        isOverdue = true;
-                    } else if (remaining <= 5) {
-                        statusHtml = `<span class="text-[10px] bg-orange-100 text-warning border border-orange-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-circle"></i> Vence em ${remaining}d</span>`;
-                    } else {
-                        statusHtml = `<span class="text-[10px] bg-green-100 text-success border border-green-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-check-circle"></i> OK</span>`;
-                    }
-                }
+                const sec = m.sector || 'Sem Setor';
+                if (!bySector[sec]) bySector[sec] = [];
+                bySector[sec].push(m);
+            });
 
-                container.innerHTML += `
-                    <div onclick="openMachineDetails('${m.dbId}')" class="bg-white p-4 rounded-xl border ${isOverdue ? 'border-red-300' : 'border-gray-200'} shadow-sm active:scale-95 transition cursor-pointer hover:shadow-md">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 class="font-black text-dark text-sm uppercase">${m.name}</h3>
-                                <p class="text-[10px] text-gray-500 font-bold mt-1">Pat: ${m.patrimony || 'N/A'} | Setor: ${m.sector}</p>
-                            </div>
-                            ${statusHtml}
+            const now = new Date();
+            const sortedSectors = Object.keys(bySector).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            sortedSectors.forEach((sec, idx) => {
+                const sectorMachines = bySector[sec].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+                const sectorId = `sector-group-${idx}`;
+                
+                let sectorStatusAlertCount = 0;
+                sectorMachines.forEach(m => {
+                    if (!m.lastPmDate) {
+                        sectorStatusAlertCount++;
+                    } else {
+                        const lastPm = new Date(m.lastPmDate + 'T00:00:00');
+                        const diffTime = Math.abs(now - lastPm);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const remaining = (m.pmInterval || 30) - diffDays;
+                        if (remaining < 0) {
+                            sectorStatusAlertCount++;
+                        }
+                    }
+                });
+
+                const alertBadgeHtml = sectorStatusAlertCount > 0 
+                    ? `<span class="bg-red-100 text-danger border border-red-200 text-[10px] px-2 py-0.5 rounded font-black mr-2"><i class="fas fa-exclamation-triangle"></i> ${sectorStatusAlertCount}</span>` 
+                    : '';
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4';
+                card.innerHTML = `
+                    <div onclick="document.getElementById('${sectorId}').classList.toggle('hidden')" class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                        <div class="flex items-center">
+                            <h4 class="font-black text-dark text-xs uppercase flex items-center gap-1.5">
+                                <i class="fas fa-industry text-brand"></i> ${sec}
+                            </h4>
+                            <span class="ml-2 text-[10px] text-gray-400 font-bold bg-gray-200/50 px-2 py-0.5 rounded">${sectorMachines.length} item(ns)</span>
+                        </div>
+                        <div class="flex items-center">
+                            ${alertBadgeHtml}
+                            <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-200"></i>
                         </div>
                     </div>
+                    <div id="${sectorId}" class="divide-y divide-gray-100 ${term ? '' : 'hidden'} p-3 space-y-2">
+                    </div>
                 `;
+
+                const listContainer = card.querySelector(`#${sectorId}`);
+                sectorMachines.forEach(m => {
+                    let statusHtml = '';
+                    let isOverdue = false;
+                    if (!m.lastPmDate) {
+                        statusHtml = `<span class="text-[10px] bg-red-100 text-danger border border-red-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-triangle"></i> Sem Prev.</span>`;
+                        isOverdue = true;
+                    } else {
+                        const lastPm = new Date(m.lastPmDate + 'T00:00:00');
+                        const diffTime = Math.abs(now - lastPm);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const remaining = (m.pmInterval || 30) - diffDays;
+                        
+                        if (remaining < 0) {
+                            statusHtml = `<span class="text-[10px] bg-red-100 text-danger border border-red-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-triangle"></i> Atrasada ${Math.abs(remaining)}d</span>`;
+                            isOverdue = true;
+                        } else if (remaining <= 5) {
+                            statusHtml = `<span class="text-[10px] bg-orange-100 text-warning border border-orange-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-exclamation-circle"></i> Vence em ${remaining}d</span>`;
+                        } else {
+                            statusHtml = `<span class="text-[10px] bg-green-100 text-success border border-green-200 px-2 py-0.5 rounded font-bold uppercase"><i class="fas fa-check-circle"></i> OK</span>`;
+                        }
+                    }
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `bg-white p-3 rounded-lg border ${isOverdue ? 'border-red-300 bg-red-50/10' : 'border-gray-150'} shadow-sm active:scale-[0.98] transition cursor-pointer hover:shadow flex items-center justify-between gap-4`;
+                    itemDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        openMachineDetails(m.dbId);
+                    };
+                    itemDiv.innerHTML = `
+                        <div class="truncate">
+                            <h5 class="font-bold text-dark text-xs uppercase truncate">${m.name}</h5>
+                            <p class="text-[9px] text-gray-400 font-bold mt-0.5">Pat: ${m.patrimony || 'N/A'}</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            ${statusHtml}
+                        </div>
+                    `;
+                    listContainer.appendChild(itemDiv);
+                });
+
+                container.appendChild(card);
             });
         }
         window.renderMachinesList = renderMachinesList;
@@ -4294,6 +4370,7 @@
                 });
                 showToast("Equipamento cadastrado!");
                 closeAddMachineModal();
+                loadMachinesData();
             } catch (err) {
                 console.error("Erro ao salvar máquina:", err);
                 showToast("Erro ao cadastrar equipamento.");
@@ -4442,6 +4519,7 @@
                     history: history
                 });
                 showToast("Manutenção Preventiva registrada!");
+                await loadMachinesData();
                 openMachineDetails(currentMachineId);
             } catch (err) {
                 console.error("Erro ao registrar PM:", err);
@@ -4458,6 +4536,7 @@
                 await deleteDoc(doc(db, "machines", currentMachineId));
                 showToast("Equipamento excluído!");
                 closeMachineDetails();
+                loadMachinesData();
             } catch (err) {
                 console.error("Erro ao excluir máquina:", err);
                 showToast("Erro ao excluir.");
@@ -4506,6 +4585,7 @@
                 await updateDoc(doc(db, "machines", currentMachineId), updateData);
                 showToast("Equipamento atualizado!");
                 closeEditMachineModal();
+                await loadMachinesData();
                 openMachineDetails(currentMachineId);
             } catch(err) {
                 console.error("Erro ao atualizar máquina", err);
