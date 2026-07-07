@@ -344,12 +344,25 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor do Problema *</label>
-                        <select id="os-sector" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm font-medium">
+                        <select id="os-sector" required onchange="onSectorChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand text-sm font-medium">
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento com Defeito</label>
-                        <input type="text" id="os-equipment" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm" placeholder="Opcional. Ex: Máquina 1, Ar Condicionado...">
+                        <div class="relative">
+                            <input type="text" id="os-equipment-search" autocomplete="off"
+                                   oninput="filterEquipments(this.value)"
+                                   onfocus="filterEquipments(this.value)"
+                                   onblur="setTimeout(()=>{ const d=document.getElementById('equipment-dropdown'); if(d) d.classList.add('hidden'); }, 200)"
+                                   class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm"
+                                   placeholder="Opcional. Digite para buscar...">
+                            <input type="hidden" id="os-equipment-id" value="">
+                            <input type="hidden" id="os-equipment" value="">
+                            <ul id="equipment-dropdown" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                        </div>
+                        <div id="os-equipment-other-container" class="mt-2 hidden">
+                            <input type="text" id="os-equipment-other" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm" placeholder="Digite o nome do equipamento...">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição Detalhada *</label>
@@ -2042,7 +2055,11 @@
                     if(s && s.name) select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
                 });
                 document.getElementById('os-requester').value = ''; 
-                document.getElementById('os-equipment').value = ''; 
+                document.getElementById('os-equipment-search').value = '';
+                document.getElementById('os-equipment-id').value = '';
+                document.getElementById('os-equipment-other').value = '';
+                document.getElementById('os-equipment').value = '';
+                document.getElementById('os-equipment-other-container').classList.add('hidden');
                 appState.newOsPhotos = [];
                 if(window.renderNewOsPhotos) window.renderNewOsPhotos();
                 
@@ -2051,6 +2068,91 @@
                 console.error("Erro ao preparar nova OS", e);
             }
         }
+
+        // --- AUTOCOMPLETE DE EQUIPAMENTOS ---
+        window.filterEquipments = function(val) {
+            const dropdown = document.getElementById('equipment-dropdown');
+            if (!dropdown) return;
+            
+            const sectorSelect = document.getElementById('os-sector');
+            const sector = sectorSelect ? sectorSelect.value : '';
+            
+            if (!sector) {
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center italic">Selecione o setor primeiro</li>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+
+            const term = (val || '').toLowerCase().trim();
+            const sectorMachines = (appState.machines || [])
+                .filter(m => m.sector && m.sector.toLowerCase() === sector.toLowerCase());
+                
+            const filtered = term 
+                ? sectorMachines.filter(m => 
+                    (m.name && m.name.toLowerCase().includes(term)) || 
+                    (m.patrimony && String(m.patrimony).toLowerCase().includes(term))
+                  )
+                : sectorMachines;
+
+            dropdown.innerHTML = '';
+            
+            if (filtered.length > 0) {
+                dropdown.innerHTML += filtered.map(m => {
+                    const dispName = m.name + (m.patrimony && m.patrimony !== '0000' ? ` - Pat: ${m.patrimony}` : '');
+                    return `<li onmousedown="window.selectEquipment('${m.dbId}', '${m.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', '${m.patrimony || ''}')" class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800 flex items-center justify-between">
+                        <span class="truncate">${m.name}</span>
+                        ${m.patrimony && m.patrimony !== '0000' ? `<span class="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">Pat: ${m.patrimony}</span>` : ''}
+                    </li>`;
+                }).join('');
+            }
+            
+            dropdown.innerHTML += `<li onmousedown="window.selectEquipment('outro', 'Outro', '')" class="p-3 text-sm text-brand hover:bg-yellow-50 cursor-pointer font-bold flex items-center gap-2">
+                <i class="fas fa-plus-circle text-xs"></i> Outro (digitar nome)
+            </li>`;
+            
+            dropdown.classList.remove('hidden');
+        };
+
+        window.selectEquipment = function(id, name, patrimony) {
+            const searchInput = document.getElementById('os-equipment-search');
+            const idInput = document.getElementById('os-equipment-id');
+            const otherContainer = document.getElementById('os-equipment-other-container');
+            const otherInput = document.getElementById('os-equipment-other');
+            const hiddenEquipment = document.getElementById('os-equipment');
+
+            if (id === 'outro') {
+                searchInput.value = 'Outro';
+                idInput.value = 'outro';
+                otherContainer.classList.remove('hidden');
+                otherInput.value = '';
+                setTimeout(() => { otherInput.focus(); }, 50);
+                if (hiddenEquipment) hiddenEquipment.value = '';
+            } else {
+                const dispName = name + (patrimony && patrimony !== '0000' ? ` (Patrimônio ${patrimony})` : '');
+                searchInput.value = dispName;
+                idInput.value = id;
+                otherContainer.classList.add('hidden');
+                otherInput.value = '';
+                if (hiddenEquipment) hiddenEquipment.value = dispName;
+            }
+            
+            const dropdown = document.getElementById('equipment-dropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+        };
+
+        window.onSectorChange = function() {
+            const searchInput = document.getElementById('os-equipment-search');
+            const idInput = document.getElementById('os-equipment-id');
+            const otherContainer = document.getElementById('os-equipment-other-container');
+            const otherInput = document.getElementById('os-equipment-other');
+            const hiddenEquipment = document.getElementById('os-equipment');
+
+            if (searchInput) searchInput.value = '';
+            if (idInput) idInput.value = '';
+            if (otherContainer) otherContainer.classList.add('hidden');
+            if (otherInput) otherInput.value = '';
+            if (hiddenEquipment) hiddenEquipment.value = '';
+        };
 
         function calculateGUT(context) {
             try {
@@ -2213,14 +2315,32 @@
                     } else assignedToVal = "Líder de Galpão";
                 }
 
+                const equipId = document.getElementById('os-equipment-id').value;
+                let equipmentVal = '';
+                let linkedMachineId = null;
+                if (equipId === 'outro') {
+                    equipmentVal = document.getElementById('os-equipment-other').value.trim();
+                    if (!equipmentVal) {
+                        showToast("Digite o nome do equipamento.");
+                        document.getElementById('os-equipment-other').focus();
+                        return;
+                    }
+                } else if (equipId) {
+                    equipmentVal = document.getElementById('os-equipment-search').value.trim();
+                    linkedMachineId = equipId;
+                } else {
+                    equipmentVal = document.getElementById('os-equipment-search').value.trim();
+                }
+
                 const newOS = {
                     id: newId,
                     requester: document.getElementById('os-requester').value,
                     sector: document.getElementById('os-sector').value,
-                    equipment: document.getElementById('os-equipment').value,
+                    equipment: equipmentVal,
                     description: document.getElementById('os-description').value,
                     photos: appState.newOsPhotos ? [...appState.newOsPhotos] : [],
-                    gut: calculateGUT('new'), 
+                    gut: calculateGUT('new'),
+                    linkedMachineId: linkedMachineId,
                     status: "Solicitada",
                     occurrenceType: occurrenceType,
                     createdAt: new Date().toISOString(), 

@@ -71,9 +71,16 @@
 
                 <div id="internal-equipment-field">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Equipamento (Opcional)</label>
-                    <select id="os-equipment-select" onchange="onInternalEquipmentChange()" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand text-sm font-medium transition-all">
-                        <option value="">Selecione o setor primeiro...</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="os-equipment-search" autocomplete="off"
+                               oninput="filterEquipments(this.value)"
+                               onfocus="filterEquipments(this.value)"
+                               onblur="setTimeout(()=>{ const d=document.getElementById('equipment-dropdown'); if(d) d.classList.add('hidden'); }, 200)"
+                               class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all"
+                               placeholder="Opcional. Digite para buscar...">
+                        <input type="hidden" id="os-equipment-id" value="">
+                        <ul id="equipment-dropdown" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></ul>
+                    </div>
                     <div id="os-equipment-other-container" class="mt-2 hidden">
                         <input type="text" id="os-equipment-other" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-1 focus:ring-brand text-sm transition-all" placeholder="Digite o nome do equipamento...">
                     </div>
@@ -405,46 +412,83 @@
             }
         };
 
-        window.onSectorChange = function() {
-            const sector = document.getElementById('os-sector').value;
-            const equipSelect = document.getElementById('os-equipment-select');
-            const otherContainer = document.getElementById('os-equipment-other-container');
-            const otherInput = document.getElementById('os-equipment-other');
+        window.filterEquipments = function(val) {
+            const dropdown = document.getElementById('equipment-dropdown');
+            if (!dropdown) return;
             
-            // Clear other fields
-            otherContainer.classList.add('hidden');
-            otherInput.value = '';
-
+            const sectorSelect = document.getElementById('os-sector');
+            const sector = sectorSelect ? sectorSelect.value : '';
+            
             if (!sector) {
-                equipSelect.innerHTML = '<option value="">Selecione o setor primeiro...</option>';
+                dropdown.innerHTML = '<li class="p-3 text-sm text-gray-400 text-center">Selecione o setor primeiro</li>';
+                dropdown.classList.remove('hidden');
                 return;
             }
 
-            // Filter machines by sector
-            const machines = appState.machines
-                .filter(m => m.sector && m.sector.toLowerCase() === sector.toLowerCase())
-                .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
+            const term = (val || '').toLowerCase().trim();
+            const sectorMachines = (appState.machines || [])
+                .filter(m => m.sector && m.sector.toLowerCase() === sector.toLowerCase());
+                
+            const filtered = term 
+                ? sectorMachines.filter(m => 
+                    (m.name && m.name.toLowerCase().includes(term)) || 
+                    (m.patrimony && String(m.patrimony).toLowerCase().includes(term))
+                  )
+                : sectorMachines;
 
-            let optionsHtml = '<option value="">Selecione o equipamento...</option>';
-            machines.forEach(m => {
-                optionsHtml += `<option value="${m.dbId}" data-name="${m.name}" data-patrimony="${m.patrimony || ''}">${m.name}${m.patrimony && m.patrimony !== '0000' ? ' - Pat: ' + m.patrimony : ''}</option>`;
-            });
-            optionsHtml += '<option value="outro">Outro (digitar nome)</option>';
-            equipSelect.innerHTML = optionsHtml;
+            dropdown.innerHTML = '';
+            
+            if (filtered.length > 0) {
+                dropdown.innerHTML += filtered.map(m => {
+                    const dispName = m.name + (m.patrimony && m.patrimony !== '0000' ? ` - Pat: ${m.patrimony}` : '');
+                    return `<li onclick="selectEquipment('${m.dbId}', '${m.name.replace(/'/g, "\\'")}', '${m.patrimony || ''}')" class="p-3 text-sm text-dark hover:bg-gray-100 cursor-pointer font-medium border-b border-gray-100 last:border-0 flex items-center justify-between">
+                        <span class="truncate">${m.name}</span>
+                        ${m.patrimony && m.patrimony !== '0000' ? `<span class="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">Pat: ${m.patrimony}</span>` : ''}
+                    </li>`;
+                }).join('');
+            }
+            
+            dropdown.innerHTML += `<li onclick="selectEquipment('outro', 'Outro', '')" class="p-3 text-sm text-brand hover:bg-gray-100 cursor-pointer font-bold flex items-center gap-2">
+                <i class="fas fa-plus-circle text-xs"></i> Outro (digitar nome)
+            </li>`;
+            
+            dropdown.classList.remove('hidden');
         };
 
-        window.onInternalEquipmentChange = function() {
-            const equipSelect = document.getElementById('os-equipment-select');
+        window.selectEquipment = function(id, name, patrimony) {
+            const searchInput = document.getElementById('os-equipment-search');
+            const idInput = document.getElementById('os-equipment-id');
             const otherContainer = document.getElementById('os-equipment-other-container');
             const otherInput = document.getElementById('os-equipment-other');
-            
-            if (equipSelect.value === 'outro') {
+
+            if (id === 'outro') {
+                searchInput.value = 'Outro';
+                idInput.value = 'outro';
                 otherContainer.classList.remove('hidden');
+                otherInput.value = '';
                 otherInput.focus();
             } else {
+                const dispName = name + (patrimony && patrimony !== '0000' ? ` (Patrimônio ${patrimony})` : '');
+                searchInput.value = dispName;
+                idInput.value = id;
                 otherContainer.classList.add('hidden');
                 otherInput.value = '';
             }
+            
+            const dropdown = document.getElementById('equipment-dropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+        };
+
+        window.onSectorChange = function() {
+            const searchInput = document.getElementById('os-equipment-search');
+            const idInput = document.getElementById('os-equipment-id');
+            const otherContainer = document.getElementById('os-equipment-other-container');
+            const otherInput = document.getElementById('os-equipment-other');
+
+            if (searchInput) searchInput.value = '';
+            if (idInput) idInput.value = '';
+            if (otherContainer) otherContainer.classList.add('hidden');
+            if (otherInput) otherInput.value = '';
         };
 
         window.filterStores = function(val) {
@@ -529,8 +573,8 @@
                     showToast("Selecione o setor do problema.");
                     return;
                 }
-                const equipSelect = document.getElementById('os-equipment-select');
-                if (equipSelect.value === 'outro') {
+                const equipId = document.getElementById('os-equipment-id').value;
+                if (equipId === 'outro') {
                     const otherInput = document.getElementById('os-equipment-other');
                     if (!otherInput.value.trim()) {
                         showToast("Digite o nome do equipamento.");
@@ -588,18 +632,16 @@
                     equipment = `${externalEquipmentName} (Patrimônio ${externalPatrimonio})`;
                 } else {
                     sector = document.getElementById('os-sector').value;
-                    const equipSelect = document.getElementById('os-equipment-select');
-                    if (equipSelect.value === 'outro') {
+                    const equipId = document.getElementById('os-equipment-id').value;
+                    if (equipId === 'outro') {
                         equipment = document.getElementById('os-equipment-other').value.trim();
                         linkedMachineId = null;
-                    } else if (equipSelect.value) {
-                        const selectedOpt = equipSelect.selectedOptions[0];
-                        const name = selectedOpt.dataset.name;
-                        const pat = selectedOpt.dataset.patrimony;
-                        equipment = name + (pat && pat !== '0000' ? ` (Patrimônio ${pat})` : '');
-                        linkedMachineId = equipSelect.value;
+                    } else if (equipId) {
+                        equipment = document.getElementById('os-equipment-search').value.trim();
+                        linkedMachineId = equipId;
                     } else {
-                        equipment = '';
+                        // User typed something directly or left it blank
+                        equipment = document.getElementById('os-equipment-search').value.trim();
                         linkedMachineId = null;
                     }
                 }
