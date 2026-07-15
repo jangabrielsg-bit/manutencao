@@ -1244,11 +1244,11 @@
         };
 
         const getOrdersCol = () => {
-            return collection(db, "orders_interna");
+            return collection(db, "orders_externa");
         };
 
         const getOrderDoc = (id) => {
-            return doc(db, "orders_interna", id);
+            return doc(db, "orders_externa", id);
         };
 
         function setupDatabaseListeners() {
