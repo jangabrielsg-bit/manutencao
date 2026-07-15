@@ -2201,7 +2201,20 @@
                 appState.sectors.forEach(s => {
                     if(s && s.name) select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
                 });
-                document.getElementById('os-requester').value = '';
+                // Se o usuário logado for gestor ou admin, preenche automaticamente o solicitante
+                const requesterInput = document.getElementById('os-requester');
+                const isLoggedUser = appState.currentUser && appState.currentUser.name && appState.currentUser.role !== 'requester' && appState.currentUser.role !== 'maintenance';
+                if (isLoggedUser) {
+                    requesterInput.value = appState.currentUser.name;
+                    requesterInput.readOnly = true;
+                    requesterInput.classList.add('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+                    requesterInput.classList.remove('bg-gray-50');
+                } else {
+                    requesterInput.value = '';
+                    requesterInput.readOnly = false;
+                    requesterInput.classList.remove('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+                    requesterInput.classList.add('bg-gray-50');
+                }
                 const dd = document.getElementById('requester-dropdown');
                 if (dd) dd.classList.add('hidden');
                 document.getElementById('os-equipment-search').value = '';
@@ -2358,7 +2371,8 @@
                     showToast("Informe o solicitante.");
                     return;
                 }
-                if (appState.requesters && appState.requesters.length > 0) {
+                const isAutoFilled = appState.currentUser && appState.currentUser.name && appState.currentUser.role !== 'requester' && appState.currentUser.role !== 'maintenance';
+                if (!isAutoFilled && appState.requesters && appState.requesters.length > 0) {
                     const valid = appState.requesters.some(r => r.name === requesterInput);
                     if (!valid) {
                         showToast("Selecione um solicitante da lista cadastrada.");
