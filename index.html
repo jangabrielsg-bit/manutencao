@@ -167,7 +167,7 @@
                     <button id="btn-tab-dashboard" onclick="switchHomeTab('dashboard')" class="flex-1 bg-white text-brand font-bold py-2.5 rounded-lg shadow-sm border border-transparent transition-all text-sm flex items-center justify-center">Resumo Geral</button>
                     <button id="btn-tab-sectors" onclick="switchHomeTab('sectors')" class="flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm flex items-center justify-center">Setores</button>
                     <button id="btn-tab-machines" onclick="switchHomeTab('machines')" class="hidden maint-action flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm flex items-center justify-center">Máquinas</button>
-                    <button id="btn-tab-external" onclick="switchHomeTab('external')" class="hidden admin-action flex-1 bg-dark/10 text-dark font-medium py-2.5 rounded-lg hover:bg-dark/20 transition-all border border-transparent text-sm flex items-center justify-center">Equip. Externos</button>
+
                 </div>
             </div>
 
@@ -273,24 +273,6 @@
                     </div>
                 </div>
 
-                <!-- ABA 4: EQUIPAMENTOS EXTERNOS (LOJAS) -->
-                <div id="home-tab-external" class="hidden mb-8 mt-2">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-bold text-dark text-xs uppercase tracking-wider ml-1 text-gray-500">Equipamentos em Lojas Externas</h3>
-                        <button onclick="seedExternalEquipmentData()" class="admin-write bg-dark text-brand font-bold py-1.5 px-3 rounded-lg shadow-sm active:scale-95 transition flex items-center gap-2 text-xs">
-                            <i class="fas fa-sync"></i> <span class="hidden sm:inline">Importar Planilha</span>
-                        </button>
-                    </div>
-
-                    <div class="relative w-full mb-4">
-                        <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
-                        <input type="text" id="search-external-equipment" oninput="renderExternalEquipmentList()" placeholder="Buscar por loja, equipamento ou patrimônio..." class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl shadow-sm border-none focus:ring-2 focus:ring-brand text-sm outline-none">
-                    </div>
-
-                    <div id="external-equipment-list-container" class="space-y-4 pb-8">
-                        <!-- Gerado via JS -->
-                    </div>
-                </div>
 
             </div>
         </div>
@@ -1244,11 +1226,11 @@
         };
 
         const getOrdersCol = () => {
-            return collection(db, "orders_interna");
+            return collection(db, "orders");
         };
 
         const getOrderDoc = (id) => {
-            return doc(db, "orders_interna", id);
+            return doc(db, "orders", id);
         };
 
         function setupDatabaseListeners() {
@@ -1278,7 +1260,7 @@
                 }
             }, (err) => console.error("Settings Snap Error:", err));
 
-            onSnapshot(query(getOrdersCol(), orderBy("createdAt", "desc"), limit(200)), (snapshot) => {
+            onSnapshot(getOrdersCol(), (snapshot) => {
                 appState.orders = snapshot.docs.map(d => ({ dbId: d.id, ...d.data() }));
                 if(currentViewId === 'home') renderHome();
                 if(currentViewId === 'sector-os') renderSectorList();
@@ -4011,16 +3993,7 @@
         // TIPO DE OCORRÊNCIA (INTERNA/EXTERNA)
         // =====================================================
         function openOccurrenceTypeModal() {
-            const settings = appState.settings || {};
-            const nomeInterna = settings.nomeOcorrenciaInterna || 'Ocorrência Interna';
-            const nomeExterna = settings.nomeOcorrenciaExterna || 'Ocorrência Externa';
-            const el1 = document.getElementById('label-tipo-interna');
-            const el2 = document.getElementById('label-tipo-externa');
-            if (el1) el1.innerText = nomeInterna;
-            if (el2) el2.innerText = nomeExterna;
-            const modal = document.getElementById('modal-occurrence-type');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            document.getElementById('os-occurrence-type').value = 'interna';
         }
 
         function selectOccurrenceType(type) {
