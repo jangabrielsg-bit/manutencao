@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guia de Uso - Perfil Gestor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#DDA800', 
+                        dark: '#1e293b',
+                        grayBg: '#f4f5f7'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+        body { background-color: #f4f5f7; }
+        .print-placeholder {
+            background-image: repeating-linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0), repeating-linear-gradient(45deg, #f0f0f0 25%, #ffffff 25%, #ffffff 75%, #f0f0f0 75%, #f0f0f0);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="text-gray-800 font-sans antialiased pb-20">
+
+    <!-- Cabeçalho -->
+    <header class="bg-dark text-white py-12 px-6 text-center shadow-lg relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <div class="relative z-10 max-w-3xl mx-auto">
+            <div class="w-20 h-20 bg-brand rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <i class="fas fa-eye text-4xl text-dark"></i>
+            </div>
+            <h1 class="text-4xl font-black mb-4">Manual do Gestor</h1>
+            <p class="text-gray-400 text-lg">Aprenda a utilizar o App de Manutenção para monitorar, analisar e abrir ocorrências de forma estratégica.</p>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-6 mt-10 space-y-16">
+
+        <!-- Seção 1: Login -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-8 md:p-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <span class="w-10 h-10 rounded-full bg-brand/20 text-brand flex items-center justify-center font-black text-xl">1</span>
+                    <h2 class="text-2xl font-bold text-dark">Acesso ao Sistema</h2>
+                </div>
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                    O acesso ao sistema é feito através da tela inicial. O perfil de <strong>Gestor</strong> tem visão completa de todas as Ordens de Serviço (O.S.), acesso aos gráficos e configurações, mas não possui permissões de edição estrutural, garantindo segurança na auditoria.
+                </p>
+                <ul class="space-y-3 mb-8 text-gray-700">
+                    <li class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i> Clique na opção <strong>Gestor</strong> (ícone de olho).</li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i> Insira seu e-mail e senha.</li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i> Clique no botão de Entrar.</li>
+                </ul>
+
+                <!-- Box do Print -->
+                <div class="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300 relative group text-center">
+                    <!-- INSTRUÇÃO PARA O USUÁRIO: Coloque a imagem correta na pasta img/ -->
+                    <img src="img/print_login.jpg" alt="Print da Tela de Login" class="mx-auto rounded shadow-sm max-h-96 object-contain hidden print-img">
+                    <div class="py-12 print-placeholder-text">
+                        <i class="fas fa-camera text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 font-bold">Print: Tela de Login</p>
+                        <p class="text-xs text-gray-400 mt-2">No GitHub, faça upload de um print com o nome "print_login.jpg" na pasta "img".</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção 2: Dashboard -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-8 md:p-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <span class="w-10 h-10 rounded-full bg-brand/20 text-brand flex items-center justify-center font-black text-xl">2</span>
+                    <h2 class="text-2xl font-bold text-dark">Painel de Controle (Dashboard)</h2>
+                </div>
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                    Logo após o login, você cai na visão geral. Este painel permite sentir o "pulso" da operação em tempo real.
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-red-50 border border-red-100 p-5 rounded-xl">
+                        <h4 class="font-bold text-red-700 flex items-center gap-2 mb-2"><i class="fas fa-clock"></i> Pendentes</h4>
+                        <p class="text-sm text-red-600">Serviços registrados que ainda não foram assumidos por nenhum técnico.</p>
+                    </div>
+                    <div class="bg-orange-50 border border-orange-100 p-5 rounded-xl">
+                        <h4 class="font-bold text-orange-700 flex items-center gap-2 mb-2"><i class="fas fa-tools"></i> Em Andamento</h4>
+                        <p class="text-sm text-orange-600">Serviços que já estão sendo executados pela equipe.</p>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-8">
+                    <p class="text-sm text-blue-800 font-medium"><i class="fas fa-info-circle mr-2"></i> <strong>Sinalização Visual:</strong> Se houver ocorrências críticas pela matriz GUT, um botão vermelho piscante de "Urgentes" aparecerá no painel automaticamente!</p>
+                </div>
+
+                <!-- Box do Print -->
+                <div class="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300 relative group text-center">
+                    <img src="img/print_dashboard.jpg" alt="Print do Dashboard" class="mx-auto rounded shadow-sm max-h-96 object-contain hidden print-img">
+                    <div class="py-12 print-placeholder-text">
+                        <i class="fas fa-camera text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 font-bold">Print: Dashboard / Visão Geral</p>
+                        <p class="text-xs text-gray-400 mt-2">No GitHub, faça upload de um print com o nome "print_dashboard.jpg" na pasta "img".</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção 3: Minhas Solicitações -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-8 md:p-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <span class="w-10 h-10 rounded-full bg-brand/20 text-brand flex items-center justify-center font-black text-xl">3</span>
+                    <h2 class="text-2xl font-bold text-dark">Suas Próprias Solicitações</h2>
+                </div>
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                    O Gestor também atua abrindo ordens de serviço (ex: identificou uma lâmpada queimada ou maquinário com ruído). Para não perder essas O.S. de vista, há um atalho exclusivo.
+                </p>
+                <p class="text-gray-700 font-medium mb-8">
+                    No Dashboard, procure pelo botão amarelo <strong class="bg-brand/20 px-2 py-1 rounded border border-brand">Minhas Solicitações</strong>. Ele listará apenas os chamados abertos no seu nome.
+                </p>
+
+                <!-- Box do Print -->
+                <div class="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300 relative group text-center">
+                    <img src="img/print_minhas_solicitacoes.jpg" alt="Print de Minhas Solicitações" class="mx-auto rounded shadow-sm max-h-96 object-contain hidden print-img">
+                    <div class="py-12 print-placeholder-text">
+                        <i class="fas fa-camera text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 font-bold">Print: Botão Minhas Solicitações</p>
+                        <p class="text-xs text-gray-400 mt-2">No GitHub, faça upload de um print com o nome "print_minhas_solicitacoes.jpg" na pasta "img".</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção 4: Relatórios Analytics -->
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-8 md:p-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <span class="w-10 h-10 rounded-full bg-brand/20 text-brand flex items-center justify-center font-black text-xl">4</span>
+                    <h2 class="text-2xl font-bold text-dark">Analytics e Gráficos</h2>
+                </div>
+                <p class="text-gray-600 mb-6 leading-relaxed">
+                    A tomada de decisão exige dados corretos. No menu de cabeçalho, clique no ícone de <strong>Gráfico (<i class="fas fa-chart-bar"></i>)</strong> para acessar o módulo de inteligência.
+                </p>
+                
+                <ul class="grid md:grid-cols-2 gap-4 mb-8">
+                    <li class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <i class="fas fa-chart-pie text-brand mb-2 text-xl"></i>
+                        <h4 class="font-bold text-dark text-sm">O.S. por Setor</h4>
+                        <p class="text-xs text-gray-500 mt-1">Identifique qual departamento gera mais custo ou sofre mais paradas.</p>
+                    </li>
+                    <li class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <i class="fas fa-user-hard-hat text-brand mb-2 text-xl"></i>
+                        <h4 class="font-bold text-dark text-sm">Produtividade da Equipe</h4>
+                        <p class="text-xs text-gray-500 mt-1">Saiba qual técnico conclui mais atividades no período selecionado.</p>
+                    </li>
+                </ul>
+
+                <!-- Box do Print -->
+                <div class="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300 relative group text-center">
+                    <img src="img/print_analytics.jpg" alt="Print do Analytics" class="mx-auto rounded shadow-sm max-h-96 object-contain hidden print-img">
+                    <div class="py-12 print-placeholder-text">
+                        <i class="fas fa-camera text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 font-bold">Print: Tela de Gráficos (Analytics)</p>
+                        <p class="text-xs text-gray-400 mt-2">No GitHub, faça upload de um print com o nome "print_analytics.jpg" na pasta "img".</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center text-gray-400 mt-12 text-sm pb-8">
+        Gestão de Manutenção &copy; 2026 - Manual do Usuário
+    </footer>
+
+    <script>
+        // Lógica para detectar se a imagem quebrou. 
+        // Se a imagem não for encontrada, mantemos a caixa pontilhada pedindo o print.
+        document.querySelectorAll('.print-img').forEach(img => {
+            img.onload = function() {
+                // Imagem carregada com sucesso! Oculta os placeholders
+                this.classList.remove('hidden');
+                this.nextElementSibling.classList.add('hidden'); // Oculta o div text
+                this.parentElement.classList.remove('border-dashed', 'border-gray-300');
+                this.parentElement.classList.add('border-solid', 'border-gray-200', 'bg-white');
+            };
+            img.onerror = function() {
+                // Falha ao carregar (imagem não existe) - não faz nada e mantém as instruções visíveis.
+            }
+            // Força a tentativa de download
+            img.src = img.src.split('?')[0]; 
+        });
+    </script>
+</body>
+</html>
