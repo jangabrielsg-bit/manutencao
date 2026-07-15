@@ -1031,7 +1031,7 @@
             </div>
             <div class="overflow-y-auto flex-1 p-4">
                 <!-- Opção nenhum -->
-                <button type="button" onclick="selectEquipment('', 'Nenhum')" class="w-full text-left p-3 rounded-xl border border-gray-200 mb-2 hover:border-brand hover:bg-brandLight transition active:scale-95 flex items-center gap-3">
+                <button type="button" onclick="selectManageEquipment('', 'Nenhum')" class="w-full text-left p-3 rounded-xl border border-gray-200 mb-2 hover:border-brand hover:bg-brandLight transition active:scale-95 flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                         <i class="fas fa-times text-gray-400 text-xs"></i>
                     </div>
@@ -1222,7 +1222,7 @@
 
         // Helpers de rotas seguras para o banco
         const getSettingsDoc = () => {
-            return doc(db, "settings", "general");
+            return doc(db, "settings", "global");
         };
 
         const getOrdersCol = () => {
@@ -3337,7 +3337,7 @@
             if (filtered.length > 0) {
                 dropdown.innerHTML += filtered.map(m => {
                     const dispName = m.name + (m.patrimony && m.patrimony !== '0000' ? ` - Pat: ${m.patrimony}` : '');
-                    return `<li onmousedown="window.selectEquipment('${m.dbId}', '${m.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', '${m.patrimony || ''}')" class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800 flex items-center justify-between">
+                    return `<li onmousedown="window.selectEquipment('${m.dbId}', '${m.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g, '&quot;')}', '${m.patrimony ? m.patrimony.replace(/'/g,"\\'").replace(/"/g, '&quot;') : ''}')" class="p-3 text-sm hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-0 font-medium text-gray-800 flex items-center justify-between">
                         <span class="truncate">${m.name}</span>
                         ${m.patrimony && m.patrimony !== '0000' ? `<span class="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded">Pat: ${m.patrimony}</span>` : ''}
                     </li>`;
@@ -4280,7 +4280,7 @@
 
             list.innerHTML = filtered.map(m => {
                 const label = m.name + (m.patrimony ? ' (' + m.patrimony + ')' : '');
-                return `<button type="button" onclick="selectEquipment('${m.dbId}', '${label.replace(/'/g, '')}')"
+                return `<button type="button" onclick="selectManageEquipment('${m.dbId}', '${label.replace(/'/g, '').replace(/"/g, '&quot;')}')"
                     class="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-brand hover:bg-brandLight transition active:scale-95 flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
                         <i class="fas fa-cog text-brand text-xs"></i>
@@ -4293,7 +4293,7 @@
             }).join('');
         }
 
-        function selectEquipment(dbId, label) {
+        function selectManageEquipment(dbId, label) {
             // Atualiza o campo hidden com o valor que o app usa para busca
             const equipSearch = document.getElementById('manage-equipment-search');
             if (dbId) {
