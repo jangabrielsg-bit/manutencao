@@ -1158,8 +1158,13 @@
                             document.getElementById('btn-nav-analytics').style.display = 'none';
                         }
                     }
-                    navigate('home');
-                    
+                    const savedSessionUrlParams = new URLSearchParams(window.location.search);
+                    if (savedSessionUrlParams.get('os')) {
+                        checkDeepLinkOS();
+                    } else {
+                        navigate('home');
+                    }
+
                     // Sincroniza em segundo plano para garantir que o papel/role atualizado pelo admin seja aplicado
                     if (appState.currentUser.uid && appState.currentUser.uid !== 'local-admin-mestre') {
                         getDoc(doc(db, "users", appState.currentUser.uid)).then(userDoc => {
@@ -1599,6 +1604,8 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('action') === 'new-os') {
                 navigate('new-os');
+            } else if (urlParams.get('os')) {
+                checkDeepLinkOS();
             } else {
                 navigate('home');
             }
@@ -2517,6 +2524,43 @@
             }
         }
 
+        // Abre uma O.S. diretamente por link (ex: vindo do WhatsApp), sem esperar
+        // a lista inteira de ordens sincronizar - faz uma busca pontual e rápida.
+        async function checkDeepLinkOS() {
+            if (window.__deepLinkOSHandled) return;
+            const params = new URLSearchParams(window.location.search);
+            const osId = params.get('os');
+            if (!osId) return;
+            window.__deepLinkOSHandled = true;
+
+            try {
+                const existing = appState.orders.find(o => o.id === osId);
+                if (existing) {
+                    navigate('home');
+                    openOSDetails(existing.dbId);
+                    return;
+                }
+
+                const q = query(getOrdersCol(), where('id', '==', osId));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    showToast('O.S. não encontrada.');
+                    return;
+                }
+                const d = snap.docs[0];
+                const orderData = { dbId: d.id, ...d.data() };
+                if (!appState.orders.find(o => o.dbId === orderData.dbId)) {
+                    appState.orders.push(orderData);
+                }
+                navigate('home');
+                openOSDetails(orderData.dbId);
+            } catch (e) {
+                console.error('Erro ao abrir O.S. via link:', e);
+                showToast('Erro ao abrir a O.S. do link.');
+            }
+        }
+        window.checkDeepLinkOS = checkDeepLinkOS;
+
         function openOSDetails(dbId) {
             const os = appState.orders.find(o => o.dbId === dbId);
             if(!os) return;
@@ -3027,16 +3071,17 @@
             if(!os) return;
 
             let urgencyEmoji = os.gut && os.gut.u >= 4 ? ' 🚨🚨 URGENTE 🚨🚨' : '';
+            const appUrl = window.location.href.split('#')[0].split('?')[0];
+            const directLink = `${appUrl}?os=${encodeURIComponent(os.id)}`;
+
             let mensagem = `*Atualização de Ocorrência*${urgencyEmoji}\n\n`;
-            mensagem += `Olá ${os.requester},\n`;
-            mensagem += `Sua solicitação *${os.id}* no setor *${os.sector}* foi atualizada.\n\n`;
-            if(os.equipment) mensagem += `*Equipamento:* ${os.equipment}\n`;
-            mensagem += `*Status Atual:* ${os.status}\n`;
-            if(os.assignedTo) mensagem += `*Responsável:* ${os.assignedTo}\n`;
+            mensagem += `Bom dia! Foi registrada a *O.S. ${os.id}* no setor *${os.sector}*.\n\n`;
+            mensagem += `*Equipamento:* ${os.equipment || 'Não informado'}\n`;
+            mensagem += `*Status:* ${os.status}\n`;
+            mensagem += `*Responsável:* ${os.assignedTo || 'A definir'}\n`;
             if(os.diagnostic) mensagem += `*Diagnóstico:* ${os.diagnostic}\n`;
             if(os.deadline) mensagem += `*Prazo Estimado:* ${new Date(os.deadline).toLocaleDateString('pt-BR')}\n`;
-            const appUrl = window.location.href.split('#')[0];
-            mensagem += `\n_Para mais detalhes, acesse o sistema:_\n👉 ${appUrl}`;
+            mensagem += `\n👉 Acompanhe os detalhes:\n${directLink}`;
 
             const textoCodificado = encodeURIComponent(mensagem);
             window.open(`https://api.whatsapp.com/send?text=${textoCodificado}`, '_blank');
